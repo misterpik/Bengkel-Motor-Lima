@@ -28,6 +28,7 @@ interface Service {
   vehicle_model: string | null;
   vehicle_year: number | null;
   license_plate: string | null;
+  vehicle_km: number | null;
   complaint: string | null;
   status: string;
   technician: string | null;
@@ -77,6 +78,7 @@ export default function EditServiceModal({ open, onOpenChange, serviceId, onServ
     vehicleModel: '',
     vehicleYear: '',
     licensePlate: '',
+    vehicleKm: '',
     complaint: '',
     technician: '',
     estimatedCost: '',
@@ -146,6 +148,7 @@ export default function EditServiceModal({ open, onOpenChange, serviceId, onServ
         vehicleModel: serviceData.vehicle_model || '',
         vehicleYear: serviceData.vehicle_year?.toString() || '',
         licensePlate: serviceData.license_plate || '',
+        vehicleKm: serviceData.vehicle_km?.toString() || '',
         complaint: serviceData.complaint || '',
         technician: serviceData.technician || '',
         estimatedCost: serviceData.estimated_cost?.toString() || '',
@@ -210,7 +213,20 @@ export default function EditServiceModal({ open, onOpenChange, serviceId, onServ
         newSpareparts[index].total_price = newSpareparts[index].quantity * (selectedSparepart.selling_price || selectedSparepart.price || 0);
       }
     } else if (field === 'quantity') {
-      newSpareparts[index].quantity = parseInt(value) || 1;
+      const quantity = parseInt(value) || 1;
+      const selectedSparepart = spareparts.find(sp => sp.id === newSpareparts[index].sparepart_id);
+      
+      // Check stock availability
+      if (selectedSparepart && quantity > selectedSparepart.stock) {
+        toast({
+          title: "Stok Tidak Cukup",
+          description: `Stok ${selectedSparepart.name} hanya tersisa ${selectedSparepart.stock} unit`,
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      newSpareparts[index].quantity = quantity;
       newSpareparts[index].total_price = newSpareparts[index].quantity * newSpareparts[index].unit_price;
     } else if (field === 'unit_price') {
       newSpareparts[index].unit_price = parseFloat(value) || 0;
@@ -255,6 +271,7 @@ export default function EditServiceModal({ open, onOpenChange, serviceId, onServ
           vehicle_model: formData.vehicleModel || null,
           vehicle_year: formData.vehicleYear ? parseInt(formData.vehicleYear) : null,
           license_plate: formData.licensePlate || null,
+          vehicle_km: formData.vehicleKm ? parseInt(formData.vehicleKm) : null,
           complaint: formData.complaint || null,
           technician: formData.technician || null,
           estimated_cost: formData.estimatedCost ? parseFloat(formData.estimatedCost) : null,
@@ -416,14 +433,28 @@ export default function EditServiceModal({ open, onOpenChange, serviceId, onServ
                 </div>
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="licensePlate">Plat Nomor</Label>
-                <Input
-                  id="licensePlate"
-                  value={formData.licensePlate}
-                  onChange={(e) => handleInputChange('licensePlate', e.target.value)}
-                  placeholder="B 1234 ABC"
-                />
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="licensePlate">Plat Nomor</Label>
+                  <Input
+                    id="licensePlate"
+                    value={formData.licensePlate}
+                    onChange={(e) => handleInputChange('licensePlate', e.target.value)}
+                    placeholder="B 1234 ABC"
+                  />
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="vehicleKm">Kilometer (KM)</Label>
+                  <Input
+                    id="vehicleKm"
+                    type="number"
+                    min="0"
+                    value={formData.vehicleKm}
+                    onChange={(e) => handleInputChange('vehicleKm', e.target.value)}
+                    placeholder="12000"
+                  />
+                </div>
               </div>
 
               <div className="space-y-2">
@@ -521,9 +552,9 @@ export default function EditServiceModal({ open, onOpenChange, serviceId, onServ
                   
                   <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                     <div className="space-y-2">
-                      <Label>Nama Sparepart</Label>
-                      <Select
-                        value={sparepart.sparepart_id}
+                      <Label>Sparepart</Label>
+                      <Select 
+                        value={sparepart.sparepart_id} 
                         onValueChange={(value) => updateSparepart(index, 'sparepart_id', value)}
                       >
                         <SelectTrigger>
@@ -531,8 +562,13 @@ export default function EditServiceModal({ open, onOpenChange, serviceId, onServ
                         </SelectTrigger>
                         <SelectContent>
                           {spareparts.map(sp => (
-                            <SelectItem key={sp.id} value={sp.id}>
-                              {sp.name} - Stok: {sp.stock}
+                            <SelectItem key={sp.id} value={sp.id} disabled={sp.stock === 0}>
+                              <div className="flex justify-between items-center w-full">
+                                <span>{sp.name}</span>
+                                <Badge variant={sp.stock > 0 ? "default" : "destructive"} className="ml-2">
+                                  Stok: {sp.stock}
+                                </Badge>
+                              </div>
                             </SelectItem>
                           ))}
                         </SelectContent>
@@ -544,9 +580,16 @@ export default function EditServiceModal({ open, onOpenChange, serviceId, onServ
                       <Input
                         type="number"
                         min="1"
+                        max={spareparts.find(sp => sp.id === sparepart.sparepart_id)?.stock || 999}
                         value={sparepart.quantity}
                         onChange={(e) => updateSparepart(index, 'quantity', e.target.value)}
+                        placeholder="1"
                       />
+                      {sparepart.sparepart_id && (
+                        <p className="text-xs text-gray-500">
+                          Stok tersedia: {spareparts.find(sp => sp.id === sparepart.sparepart_id)?.stock || 0}
+                        </p>
+                      )}
                     </div>
                     
                     <div className="space-y-2">

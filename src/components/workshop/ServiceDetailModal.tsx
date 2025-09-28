@@ -4,18 +4,17 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { 
-  Clock, 
-  CheckCircle, 
-  AlertCircle, 
+  Eye, 
+  Edit, 
+  Printer, 
+  Calendar, 
   User, 
   Car, 
-  Phone, 
-  Calendar,
-  DollarSign,
-  FileText,
-  Wrench,
-  Edit,
-  Printer
+  Wrench, 
+  Clock,
+  CheckCircle,
+  AlertCircle,
+  CreditCard
 } from 'lucide-react';
 import { supabase } from '../../../supabase/supabase';
 import { useToast } from '@/components/ui/use-toast';
@@ -29,13 +28,12 @@ interface Service {
   vehicle_model: string | null;
   vehicle_year: number | null;
   license_plate: string | null;
+  vehicle_km: number | null;
   complaint: string | null;
   status: string;
   technician: string | null;
   estimated_cost: number | null;
   actual_cost: number | null;
-  service_fee: number | null;
-  spareparts_total: number | null;
   progress: number;
   created_at: string;
   updated_at: string;
@@ -46,10 +44,11 @@ interface ServiceDetailModalProps {
   onOpenChange: (open: boolean) => void;
   serviceId: string | null;
   onEdit: (serviceId: string) => void;
-  onPrintInvoice?: (serviceId: string) => void;
+  onPrintInvoice: (serviceId: string) => void;
+  onProcessPayment?: (serviceId: string) => void;
 }
 
-export default function ServiceDetailModal({ open, onOpenChange, serviceId, onEdit, onPrintInvoice }: ServiceDetailModalProps) {
+export default function ServiceDetailModal({ open, onOpenChange, serviceId, onEdit, onPrintInvoice, onProcessPayment }: ServiceDetailModalProps) {
   const { toast } = useToast();
   const [service, setService] = useState<Service | null>(null);
   const [loading, setLoading] = useState(false);
@@ -241,6 +240,14 @@ export default function ServiceDetailModal({ open, onOpenChange, serviceId, onEd
                     </p>
                   </div>
                 )}
+                {service.vehicle_km && (
+                  <div>
+                    <p className="text-sm text-gray-500">Kilometer</p>
+                    <p className="font-semibold text-blue-600">
+                      {service.vehicle_km.toLocaleString('id-ID')} KM
+                    </p>
+                  </div>
+                )}
                 {service.technician && (
                   <div>
                     <p className="text-sm text-gray-500">Teknisi</p>
@@ -319,7 +326,7 @@ export default function ServiceDetailModal({ open, onOpenChange, serviceId, onEd
           </Card>
 
           {/* Action Buttons */}
-          <div className="flex justify-end space-x-3 pt-4 border-t">
+          <div className="flex justify-end space-x-2 pt-4 border-t">
             <Button
               variant="outline"
               onClick={() => onOpenChange(false)}
@@ -328,18 +335,24 @@ export default function ServiceDetailModal({ open, onOpenChange, serviceId, onEd
             </Button>
             <Button
               variant="outline"
-              onClick={() => {
-                onEdit(service.id);
-                onOpenChange(false);
-              }}
+              onClick={() => onEdit(service.id)}
               className="flex items-center gap-2"
             >
               <Edit className="h-4 w-4" />
               Edit Servis
             </Button>
+            {service.status === 'Selesai' && service.payment_status !== 'Lunas' && onProcessPayment && (
+              <Button
+                onClick={() => onProcessPayment(service.id)}
+                className="bg-blue-600 hover:bg-blue-700 text-white flex items-center gap-2"
+              >
+                <CreditCard className="h-4 w-4" />
+                Proses Pembayaran
+              </Button>
+            )}
             {service.status === 'Selesai' && (
               <Button
-                onClick={handlePrintInvoice}
+                onClick={() => onPrintInvoice(service.id)}
                 className="bg-green-600 hover:bg-green-700 text-white flex items-center gap-2"
               >
                 <Printer className="h-4 w-4" />

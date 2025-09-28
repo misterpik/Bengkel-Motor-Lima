@@ -5,6 +5,7 @@ import ManajemenServis from '../workshop/ManajemenServis';
 import KatalogSparepart from '../workshop/KatalogSparepart';
 import ManajemenPelanggan from '../workshop/ManajemenPelanggan';
 import PanelAdminSuper from '../workshop/PanelAdminSuper';
+import LaporanKeuangan from '../workshop/LaporanKeuangan';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
@@ -25,11 +26,12 @@ import {
   Menu,
   X,
   User,
-  LogOut
+  LogOut,
+  TrendingUp
 } from 'lucide-react';
 
 type UserRole = 'bengkel_owner' | 'bengkel_staff' | 'super_admin';
-type ActiveView = 'dashboard' | 'servis' | 'sparepart' | 'pelanggan' | 'pengaturan' | 'admin_super';
+type ActiveView = 'dashboard' | 'servis' | 'sparepart' | 'pelanggan' | 'laporan' | 'pengaturan' | 'admin_super';
 
 export default function Dashboard() {
   const { user, signOut } = useAuth();
@@ -67,6 +69,12 @@ export default function Dashboard() {
       roles: ['bengkel_owner', 'bengkel_staff']
     },
     {
+      id: 'laporan' as ActiveView,
+      label: 'Laporan Keuangan',
+      icon: TrendingUp,
+      roles: ['bengkel_owner', 'bengkel_staff']
+    },
+    {
       id: 'pengaturan' as ActiveView,
       label: 'Pengaturan Bengkel',
       icon: Settings,
@@ -101,6 +109,8 @@ export default function Dashboard() {
         return <ManajemenPelanggan isLoading={loading} />;
       case 'sparepart':
         return <KatalogSparepart isLoading={loading} />;
+      case 'laporan':
+        return <LaporanKeuangan />;
       case 'admin_super':
         return <PanelAdminSuper isLoading={loading} />;
       case 'pengaturan':

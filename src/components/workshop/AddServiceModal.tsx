@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -8,6 +8,22 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { supabase } from '../../../supabase/supabase';
 import { useAuth } from '../../../supabase/auth';
 import { useToast } from '@/components/ui/use-toast';
+
+interface Customer {
+  id: string;
+  name: string;
+  phone: string | null;
+  customer_vehicles: Vehicle[];
+}
+
+interface Vehicle {
+  id: string;
+  brand: string | null;
+  model: string | null;
+  year: number | null;
+  license_plate: string | null;
+  is_primary: boolean;
+}
 
 interface AddServiceModalProps {
   open: boolean;
@@ -19,17 +35,57 @@ export default function AddServiceModal({ open, onOpenChange, onServiceAdded }: 
   const { tenantId } = useAuth();
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
+  const [customers, setCustomers] = useState<Customer[]>([]);
+  const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
+  const [selectedVehicle, setSelectedVehicle] = useState<Vehicle | null>(null);
   const [formData, setFormData] = useState({
+    customerId: '',
     customerName: '',
     customerPhone: '',
     vehicleBrand: '',
     vehicleModel: '',
     vehicleYear: '',
     licensePlate: '',
+    vehicleKm: '',
     complaint: '',
     technician: '',
     estimatedCost: ''
   });
+
+  const fetchCustomers = async () => {
+    if (!tenantId) return;
+    
+    try {
+      const { data, error } = await supabase
+        .from('customers')
+        .select(`
+          id,
+          name,
+          phone,
+          customer_vehicles (
+            id,
+            brand,
+            model,
+            year,
+            license_plate,
+            is_primary
+          )
+        `)
+        .eq('tenant_id', tenantId)
+        .order('name');
+
+      if (error) throw error;
+      setCustomers(data || []);
+    } catch (error: any) {
+      console.error('Error fetching customers:', error);
+    }
+  };
+
+  useEffect(() => {
+    if (open) {
+      fetchCustomers();
+    }
+  }, [open, tenantId]);
 
   const generateServiceNumber = () => {
     const date = new Date();
@@ -38,6 +94,45 @@ export default function AddServiceModal({ open, onOpenChange, onServiceAdded }: 
     const day = date.getDate().toString().padStart(2, '0');
     const random = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
     return `SRV${year}${month}${day}${random}`;
+  };
+
+  const handleCustomerChange = (customerId: string) => {
+    const customer = customers.find(c => c.id === customerId);
+    if (customer) {
+      setSelectedCustomer(customer);
+      
+      // Get primary vehicle or first vehicle
+      const primaryVehicle = customer.customer_vehicles.find(v => v.is_primary) || customer.customer_vehicles[0];
+      
+      setFormData(prev => ({
+        ...prev,
+        customerId: customer.id,
+        customerName: customer.name,
+        customerPhone: customer.phone || '',
+        vehicleBrand: primaryVehicle?.brand || '',
+        vehicleModel: primaryVehicle?.model || '',
+        vehicleYear: primaryVehicle?.year?.toString() || '',
+        licensePlate: primaryVehicle?.license_plate || ''
+      }));
+      
+      setSelectedVehicle(primaryVehicle || null);
+    }
+  };
+
+  const handleVehicleChange = (vehicleId: string) => {
+    if (!selectedCustomer) return;
+    
+    const vehicle = selectedCustomer.customer_vehicles.find(v => v.id === vehicleId);
+    if (vehicle) {
+      setSelectedVehicle(vehicle);
+      setFormData(prev => ({
+        ...prev,
+        vehicleBrand: vehicle.brand || '',
+        vehicleModel: vehicle.model || '',
+        vehicleYear: vehicle.year?.toString() || '',
+        licensePlate: vehicle.license_plate || ''
+      }));
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -59,13 +154,15 @@ export default function AddServiceModal({ open, onOpenChange, onServiceAdded }: 
         .from('services')
         .insert({
           tenant_id: tenantId,
+          customer_id: formData.customerId || null,
           service_number: serviceNumber,
           customer_name: formData.customerName,
-          customer_phone: formData.customerPhone,
-          vehicle_brand: formData.vehicleBrand,
-          vehicle_model: formData.vehicleModel,
+          customer_phone: formData.customerPhone || null,
+          vehicle_brand: formData.vehicleBrand || null,
+          vehicle_model: formData.vehicleModel || null,
           vehicle_year: formData.vehicleYear ? parseInt(formData.vehicleYear) : null,
-          license_plate: formData.licensePlate,
+          license_plate: formData.licensePlate || null,
+          vehicle_km: formData.vehicleKm ? parseInt(formData.vehicleKm) : null,
           complaint: formData.complaint,
           technician: formData.technician || null,
           estimated_cost: formData.estimatedCost ? parseFloat(formData.estimatedCost) : null,
@@ -82,16 +179,20 @@ export default function AddServiceModal({ open, onOpenChange, onServiceAdded }: 
 
       // Reset form
       setFormData({
+        customerId: '',
         customerName: '',
         customerPhone: '',
         vehicleBrand: '',
         vehicleModel: '',
         vehicleYear: '',
         licensePlate: '',
+        vehicleKm: '',
         complaint: '',
         technician: '',
         estimatedCost: ''
       });
+      setSelectedCustomer(null);
+      setSelectedVehicle(null);
 
       onServiceAdded();
       onOpenChange(false);
@@ -120,13 +221,26 @@ export default function AddServiceModal({ open, onOpenChange, onServiceAdded }: 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="customerName">Nama Pelanggan *</Label>
-              <Input
-                id="customerName"
-                value={formData.customerName}
-                onChange={(e) => handleInputChange('customerName', e.target.value)}
-                required
-              />
+              <Label htmlFor="customer">Nama Pelanggan *</Label>
+              <Select onValueChange={handleCustomerChange} value={formData.customerId}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Pilih pelanggan" />
+                </SelectTrigger>
+                <SelectContent>
+                  {customers.map(customer => (
+                    <SelectItem key={customer.id} value={customer.id}>
+                      {customer.name} {customer.phone && `(${customer.phone})`}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {!formData.customerId && (
+                <Input
+                  placeholder="Atau ketik nama pelanggan baru"
+                  value={formData.customerName}
+                  onChange={(e) => handleInputChange('customerName', e.target.value)}
+                />
+              )}
             </div>
             
             <div className="space-y-2">
@@ -135,14 +249,37 @@ export default function AddServiceModal({ open, onOpenChange, onServiceAdded }: 
                 id="customerPhone"
                 value={formData.customerPhone}
                 onChange={(e) => handleInputChange('customerPhone', e.target.value)}
+                disabled={!!formData.customerId}
               />
             </div>
           </div>
 
+          {selectedCustomer && selectedCustomer.customer_vehicles.length > 1 && (
+            <div className="space-y-2">
+              <Label htmlFor="vehicle">Pilih Kendaraan</Label>
+              <Select onValueChange={handleVehicleChange} value={selectedVehicle?.id || ''}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Pilih kendaraan" />
+                </SelectTrigger>
+                <SelectContent>
+                  {selectedCustomer.customer_vehicles.map(vehicle => (
+                    <SelectItem key={vehicle.id} value={vehicle.id}>
+                      {vehicle.brand} {vehicle.model} {vehicle.year} - {vehicle.license_plate}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="space-y-2">
               <Label htmlFor="vehicleBrand">Merk Kendaraan</Label>
-              <Select onValueChange={(value) => handleInputChange('vehicleBrand', value)}>
+              <Select 
+                value={formData.vehicleBrand} 
+                onValueChange={(value) => handleInputChange('vehicleBrand', value)}
+                disabled={!!formData.customerId}
+              >
                 <SelectTrigger>
                   <SelectValue placeholder="Pilih merk" />
                 </SelectTrigger>
@@ -163,6 +300,7 @@ export default function AddServiceModal({ open, onOpenChange, onServiceAdded }: 
                 id="vehicleModel"
                 value={formData.vehicleModel}
                 onChange={(e) => handleInputChange('vehicleModel', e.target.value)}
+                disabled={!!formData.customerId}
               />
             </div>
             
@@ -175,18 +313,34 @@ export default function AddServiceModal({ open, onOpenChange, onServiceAdded }: 
                 max="2025"
                 value={formData.vehicleYear}
                 onChange={(e) => handleInputChange('vehicleYear', e.target.value)}
+                disabled={!!formData.customerId}
               />
             </div>
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="licensePlate">Plat Nomor</Label>
-            <Input
-              id="licensePlate"
-              value={formData.licensePlate}
-              onChange={(e) => handleInputChange('licensePlate', e.target.value)}
-              placeholder="B 1234 ABC"
-            />
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="licensePlate">Plat Nomor</Label>
+              <Input
+                id="licensePlate"
+                value={formData.licensePlate}
+                onChange={(e) => handleInputChange('licensePlate', e.target.value)}
+                placeholder="B 1234 ABC"
+                disabled={!!formData.customerId}
+              />
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="vehicleKm">Kilometer (KM)</Label>
+              <Input
+                id="vehicleKm"
+                type="number"
+                min="0"
+                value={formData.vehicleKm}
+                onChange={(e) => handleInputChange('vehicleKm', e.target.value)}
+                placeholder="12000"
+              />
+            </div>
           </div>
 
           <div className="space-y-2">

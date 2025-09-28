@@ -79,6 +79,27 @@ export default function KatalogSparepart({ isLoading = false }: KatalogSparepart
 
   useEffect(() => {
     fetchSpareparts();
+    
+    // Set up real-time subscription for spareparts stock changes
+    const subscription = supabase
+      .channel('spareparts_changes')
+      .on('postgres_changes', 
+        { 
+          event: '*', 
+          schema: 'public', 
+          table: 'spareparts',
+          filter: `tenant_id=eq.${tenantId}`
+        }, 
+        (payload) => {
+          console.log('Sparepart stock changed:', payload);
+          fetchSpareparts(); // Refresh data when stock changes
+        }
+      )
+      .subscribe();
+
+    return () => {
+      subscription.unsubscribe();
+    };
   }, [tenantId]);
 
   const getStockStatus = (stock: number, minimum: number) => {

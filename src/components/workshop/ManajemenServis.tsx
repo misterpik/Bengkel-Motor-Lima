@@ -14,12 +14,14 @@ import {
   Clock,
   CheckCircle,
   AlertCircle,
-  RefreshCw
+  RefreshCw,
+  CreditCard
 } from 'lucide-react';
 import AddServiceModal from './AddServiceModal';
 import ServiceDetailModal from './ServiceDetailModal';
 import EditServiceModal from './EditServiceModal';
 import InvoicePrintModal from './InvoicePrintModal';
+import PaymentProcessModal from './PaymentProcessModal';
 import { supabase } from '../../../supabase/supabase';
 import { useAuth } from '../../../supabase/auth';
 import { useToast } from '@/components/ui/use-toast';
@@ -33,11 +35,13 @@ interface Service {
   vehicle_model: string | null;
   vehicle_year: number | null;
   license_plate: string | null;
+  vehicle_km: number | null;
   complaint: string | null;
   status: string;
   technician: string | null;
   estimated_cost: number | null;
   actual_cost: number | null;
+  payment_status: string | null;
   progress: number;
   created_at: string;
 }
@@ -57,6 +61,7 @@ export default function ManajemenServis({ isLoading = false }: ManajemenServisPr
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showInvoiceModal, setShowInvoiceModal] = useState(false);
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [selectedServiceId, setSelectedServiceId] = useState<string | null>(null);
 
   const fetchServices = async () => {
@@ -100,6 +105,11 @@ export default function ManajemenServis({ isLoading = false }: ManajemenServisPr
   const handlePrintInvoice = (serviceId: string) => {
     setSelectedServiceId(serviceId);
     setShowInvoiceModal(true);
+  };
+
+  const handleProcessPayment = (serviceId: string) => {
+    setSelectedServiceId(serviceId);
+    setShowPaymentModal(true);
   };
 
   const getStatusColor = (status: string) => {
@@ -276,6 +286,9 @@ export default function ManajemenServis({ isLoading = false }: ManajemenServisPr
                           {service.vehicle_brand} {service.vehicle_model} {service.vehicle_year}
                         </p>
                         <p className="text-sm text-gray-600">{service.license_plate || '-'}</p>
+                        {service.vehicle_km && (
+                          <p className="text-sm text-blue-600 font-medium">KM: {service.vehicle_km.toLocaleString('id-ID')}</p>
+                        )}
                       </div>
                       
                       <div>
@@ -315,6 +328,17 @@ export default function ManajemenServis({ isLoading = false }: ManajemenServisPr
                           : 'Belum ditentukan'
                         }
                       </p>
+                      {service.payment_status && (
+                        <Badge className={
+                          service.payment_status === 'Lunas' 
+                            ? 'bg-green-100 text-green-800 mt-1' 
+                            : service.payment_status === 'Sebagian'
+                              ? 'bg-yellow-100 text-yellow-800 mt-1'
+                              : 'bg-red-100 text-red-800 mt-1'
+                        }>
+                          {service.payment_status}
+                        </Badge>
+                      )}
                     </div>
                     
                     <div className="flex flex-col gap-2">
@@ -336,6 +360,16 @@ export default function ManajemenServis({ isLoading = false }: ManajemenServisPr
                         <Edit className="h-4 w-4" />
                         Edit
                       </Button>
+                      {service.status === 'Selesai' && service.payment_status !== 'Lunas' && (
+                        <Button 
+                          size="sm" 
+                          className="bg-blue-600 hover:bg-blue-700 text-white flex items-center gap-2"
+                          onClick={() => handleProcessPayment(service.id)}
+                        >
+                          <CreditCard className="h-4 w-4" />
+                          Bayar
+                        </Button>
+                      )}
                       {service.status === 'Selesai' && (
                         <Button 
                           size="sm" 
@@ -396,6 +430,7 @@ export default function ManajemenServis({ isLoading = false }: ManajemenServisPr
         serviceId={selectedServiceId}
         onEdit={handleEditService}
         onPrintInvoice={handlePrintInvoice}
+        onProcessPayment={handleProcessPayment}
       />
 
       <EditServiceModal
@@ -409,6 +444,13 @@ export default function ManajemenServis({ isLoading = false }: ManajemenServisPr
         open={showInvoiceModal}
         onOpenChange={setShowInvoiceModal}
         serviceId={selectedServiceId}
+      />
+
+      <PaymentProcessModal
+        open={showPaymentModal}
+        onOpenChange={setShowPaymentModal}
+        serviceId={selectedServiceId}
+        onPaymentProcessed={fetchServices}
       />
     </div>
   );

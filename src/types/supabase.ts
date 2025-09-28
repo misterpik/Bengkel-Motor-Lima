@@ -120,6 +120,63 @@ export type Database = {
           },
         ]
       }
+      payments: {
+        Row: {
+          amount: number
+          created_at: string | null
+          id: string
+          notes: string | null
+          payment_date: string | null
+          payment_method: string
+          payment_number: string
+          payment_status: string | null
+          service_id: string
+          tenant_id: string
+          updated_at: string | null
+        }
+        Insert: {
+          amount: number
+          created_at?: string | null
+          id?: string
+          notes?: string | null
+          payment_date?: string | null
+          payment_method: string
+          payment_number: string
+          payment_status?: string | null
+          service_id: string
+          tenant_id: string
+          updated_at?: string | null
+        }
+        Update: {
+          amount?: number
+          created_at?: string | null
+          id?: string
+          notes?: string | null
+          payment_date?: string | null
+          payment_method?: string
+          payment_number?: string
+          payment_status?: string | null
+          service_id?: string
+          tenant_id?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payments_service_id_fkey"
+            columns: ["service_id"]
+            isOneToOne: false
+            referencedRelation: "services"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payments_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           created_at: string | null
@@ -265,6 +322,8 @@ export type Database = {
           estimated_cost: number | null
           id: string
           license_plate: string | null
+          payment_date: string | null
+          payment_status: string | null
           progress: number | null
           service_fee: number | null
           service_number: string
@@ -274,6 +333,7 @@ export type Database = {
           tenant_id: string
           updated_at: string | null
           vehicle_brand: string | null
+          vehicle_km: number | null
           vehicle_model: string | null
           vehicle_year: number | null
         }
@@ -287,6 +347,8 @@ export type Database = {
           estimated_cost?: number | null
           id?: string
           license_plate?: string | null
+          payment_date?: string | null
+          payment_status?: string | null
           progress?: number | null
           service_fee?: number | null
           service_number: string
@@ -296,6 +358,7 @@ export type Database = {
           tenant_id: string
           updated_at?: string | null
           vehicle_brand?: string | null
+          vehicle_km?: number | null
           vehicle_model?: string | null
           vehicle_year?: number | null
         }
@@ -309,6 +372,8 @@ export type Database = {
           estimated_cost?: number | null
           id?: string
           license_plate?: string | null
+          payment_date?: string | null
+          payment_status?: string | null
           progress?: number | null
           service_fee?: number | null
           service_number?: string
@@ -318,6 +383,7 @@ export type Database = {
           tenant_id?: string
           updated_at?: string | null
           vehicle_brand?: string | null
+          vehicle_km?: number | null
           vehicle_model?: string | null
           vehicle_year?: number | null
         }
