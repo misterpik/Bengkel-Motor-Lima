@@ -14,6 +14,112 @@ export type Database = {
   }
   public: {
     Tables: {
+      customer_vehicles: {
+        Row: {
+          brand: string | null
+          chassis_number: string | null
+          color: string | null
+          created_at: string | null
+          customer_id: string
+          engine_number: string | null
+          id: string
+          is_primary: boolean | null
+          license_plate: string | null
+          model: string | null
+          updated_at: string | null
+          year: number | null
+        }
+        Insert: {
+          brand?: string | null
+          chassis_number?: string | null
+          color?: string | null
+          created_at?: string | null
+          customer_id: string
+          engine_number?: string | null
+          id?: string
+          is_primary?: boolean | null
+          license_plate?: string | null
+          model?: string | null
+          updated_at?: string | null
+          year?: number | null
+        }
+        Update: {
+          brand?: string | null
+          chassis_number?: string | null
+          color?: string | null
+          created_at?: string | null
+          customer_id?: string
+          engine_number?: string | null
+          id?: string
+          is_primary?: boolean | null
+          license_plate?: string | null
+          model?: string | null
+          updated_at?: string | null
+          year?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "customer_vehicles_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      customers: {
+        Row: {
+          address: string | null
+          created_at: string | null
+          customer_code: string
+          date_of_birth: string | null
+          email: string | null
+          gender: string | null
+          id: string
+          name: string
+          notes: string | null
+          phone: string | null
+          tenant_id: string
+          updated_at: string | null
+        }
+        Insert: {
+          address?: string | null
+          created_at?: string | null
+          customer_code: string
+          date_of_birth?: string | null
+          email?: string | null
+          gender?: string | null
+          id?: string
+          name: string
+          notes?: string | null
+          phone?: string | null
+          tenant_id: string
+          updated_at?: string | null
+        }
+        Update: {
+          address?: string | null
+          created_at?: string | null
+          customer_code?: string
+          date_of_birth?: string | null
+          email?: string | null
+          gender?: string | null
+          id?: string
+          name?: string
+          notes?: string | null
+          phone?: string | null
+          tenant_id?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "customers_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           created_at: string | null
@@ -100,18 +206,69 @@ export type Database = {
           },
         ]
       }
+      service_spareparts: {
+        Row: {
+          created_at: string | null
+          id: string
+          quantity: number
+          service_id: string
+          sparepart_id: string
+          total_price: number
+          unit_price: number
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          quantity?: number
+          service_id: string
+          sparepart_id: string
+          total_price: number
+          unit_price: number
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          quantity?: number
+          service_id?: string
+          sparepart_id?: string
+          total_price?: number
+          unit_price?: number
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "service_spareparts_service_id_fkey"
+            columns: ["service_id"]
+            isOneToOne: false
+            referencedRelation: "services"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "service_spareparts_sparepart_id_fkey"
+            columns: ["sparepart_id"]
+            isOneToOne: false
+            referencedRelation: "spareparts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       services: {
         Row: {
           actual_cost: number | null
           complaint: string | null
           created_at: string | null
+          customer_id: string | null
           customer_name: string
           customer_phone: string | null
           estimated_cost: number | null
           id: string
           license_plate: string | null
           progress: number | null
+          service_fee: number | null
           service_number: string
+          spareparts_total: number | null
           status: string | null
           technician: string | null
           tenant_id: string
@@ -124,13 +281,16 @@ export type Database = {
           actual_cost?: number | null
           complaint?: string | null
           created_at?: string | null
+          customer_id?: string | null
           customer_name: string
           customer_phone?: string | null
           estimated_cost?: number | null
           id?: string
           license_plate?: string | null
           progress?: number | null
+          service_fee?: number | null
           service_number: string
+          spareparts_total?: number | null
           status?: string | null
           technician?: string | null
           tenant_id: string
@@ -143,13 +303,16 @@ export type Database = {
           actual_cost?: number | null
           complaint?: string | null
           created_at?: string | null
+          customer_id?: string | null
           customer_name?: string
           customer_phone?: string | null
           estimated_cost?: number | null
           id?: string
           license_plate?: string | null
           progress?: number | null
+          service_fee?: number | null
           service_number?: string
+          spareparts_total?: number | null
           status?: string | null
           technician?: string | null
           tenant_id?: string
@@ -159,6 +322,13 @@ export type Database = {
           vehicle_year?: number | null
         }
         Relationships: [
+          {
+            foreignKeyName: "services_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "services_tenant_id_fkey"
             columns: ["tenant_id"]
@@ -180,6 +350,8 @@ export type Database = {
           minimum_stock: number | null
           name: string
           price: number | null
+          purchase_price: number | null
+          selling_price: number | null
           stock: number | null
           supplier: string | null
           tenant_id: string
@@ -196,6 +368,8 @@ export type Database = {
           minimum_stock?: number | null
           name: string
           price?: number | null
+          purchase_price?: number | null
+          selling_price?: number | null
           stock?: number | null
           supplier?: string | null
           tenant_id: string
@@ -212,6 +386,8 @@ export type Database = {
           minimum_stock?: number | null
           name?: string
           price?: number | null
+          purchase_price?: number | null
+          selling_price?: number | null
           stock?: number | null
           supplier?: string | null
           tenant_id?: string

@@ -17,6 +17,9 @@ import {
   RefreshCw
 } from 'lucide-react';
 import AddServiceModal from './AddServiceModal';
+import ServiceDetailModal from './ServiceDetailModal';
+import EditServiceModal from './EditServiceModal';
+import InvoicePrintModal from './InvoicePrintModal';
 import { supabase } from '../../../supabase/supabase';
 import { useAuth } from '../../../supabase/auth';
 import { useToast } from '@/components/ui/use-toast';
@@ -51,6 +54,10 @@ export default function ManajemenServis({ isLoading = false }: ManajemenServisPr
   const [services, setServices] = useState<Service[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAddModal, setShowAddModal] = useState(false);
+  const [showDetailModal, setShowDetailModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [showInvoiceModal, setShowInvoiceModal] = useState(false);
+  const [selectedServiceId, setSelectedServiceId] = useState<string | null>(null);
 
   const fetchServices = async () => {
     if (!tenantId) return;
@@ -79,6 +86,21 @@ export default function ManajemenServis({ isLoading = false }: ManajemenServisPr
   useEffect(() => {
     fetchServices();
   }, [tenantId]);
+
+  const handleViewDetail = (serviceId: string) => {
+    setSelectedServiceId(serviceId);
+    setShowDetailModal(true);
+  };
+
+  const handleEditService = (serviceId: string) => {
+    setSelectedServiceId(serviceId);
+    setShowEditModal(true);
+  };
+
+  const handlePrintInvoice = (serviceId: string) => {
+    setSelectedServiceId(serviceId);
+    setShowInvoiceModal(true);
+  };
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -296,16 +318,30 @@ export default function ManajemenServis({ isLoading = false }: ManajemenServisPr
                     </div>
                     
                     <div className="flex flex-col gap-2">
-                      <Button variant="outline" size="sm" className="flex items-center gap-2">
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        className="flex items-center gap-2"
+                        onClick={() => handleViewDetail(service.id)}
+                      >
                         <Eye className="h-4 w-4" />
                         Detail
                       </Button>
-                      <Button variant="outline" size="sm" className="flex items-center gap-2">
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        className="flex items-center gap-2"
+                        onClick={() => handleEditService(service.id)}
+                      >
                         <Edit className="h-4 w-4" />
                         Edit
                       </Button>
                       {service.status === 'Selesai' && (
-                        <Button size="sm" className="bg-green-600 hover:bg-green-700 text-white flex items-center gap-2">
+                        <Button 
+                          size="sm" 
+                          className="bg-green-600 hover:bg-green-700 text-white flex items-center gap-2"
+                          onClick={() => handlePrintInvoice(service.id)}
+                        >
                           <Printer className="h-4 w-4" />
                           Cetak Nota
                         </Button>
@@ -347,10 +383,32 @@ export default function ManajemenServis({ isLoading = false }: ManajemenServisPr
         </Card>
       </div>
 
+      {/* Modals */}
       <AddServiceModal
         open={showAddModal}
         onOpenChange={setShowAddModal}
         onServiceAdded={fetchServices}
+      />
+
+      <ServiceDetailModal
+        open={showDetailModal}
+        onOpenChange={setShowDetailModal}
+        serviceId={selectedServiceId}
+        onEdit={handleEditService}
+        onPrintInvoice={handlePrintInvoice}
+      />
+
+      <EditServiceModal
+        open={showEditModal}
+        onOpenChange={setShowEditModal}
+        serviceId={selectedServiceId}
+        onServiceUpdated={fetchServices}
+      />
+
+      <InvoicePrintModal
+        open={showInvoiceModal}
+        onOpenChange={setShowInvoiceModal}
+        serviceId={selectedServiceId}
       />
     </div>
   );

@@ -1,8 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useAuth } from '../../../supabase/auth';
 import DashboardUtama from '../workshop/DashboardUtama';
 import ManajemenServis from '../workshop/ManajemenServis';
 import KatalogSparepart from '../workshop/KatalogSparepart';
+import ManajemenPelanggan from '../workshop/ManajemenPelanggan';
 import PanelAdminSuper from '../workshop/PanelAdminSuper';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -28,31 +29,17 @@ import {
 } from 'lucide-react';
 
 type UserRole = 'bengkel_owner' | 'bengkel_staff' | 'super_admin';
-type ActiveView = 'dashboard' | 'servis' | 'sparepart' | 'pengaturan' | 'admin_super';
+type ActiveView = 'dashboard' | 'servis' | 'sparepart' | 'pelanggan' | 'pengaturan' | 'admin_super';
 
 export default function Dashboard() {
-  const { user, signOut, profile, tenantId } = useAuth();
+  const { user, signOut } = useAuth();
   const [activeView, setActiveView] = useState<ActiveView>('dashboard');
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   
-  // Determine user role from profile or email
-  const userRole: UserRole = profile?.role === 'super_admin' || user?.email?.includes('admin') 
-    ? 'super_admin' 
-    : profile?.role || 'bengkel_owner';
-    
-  const workshopName = userRole === 'super_admin' 
-    ? 'BengkelPro Admin' 
-    : profile?.tenants?.name || 'Bengkel Motor';
-
-  // Set initial view based on user role
-  useEffect(() => {
-    if (userRole === 'super_admin') {
-      setActiveView('admin_super');
-    } else {
-      setActiveView('dashboard');
-    }
-  }, [userRole]);
+  // Simulasi role user - dalam implementasi nyata ini akan dari database
+  const userRole: UserRole = user?.email?.includes('admin') ? 'super_admin' : 'bengkel_owner';
+  const workshopName = userRole === 'super_admin' ? 'BengkelPro Admin' : 'Bengkel Motor Jaya';
 
   const menuItems = [
     {
@@ -65,6 +52,12 @@ export default function Dashboard() {
       id: 'servis' as ActiveView,
       label: 'Manajemen Servis',
       icon: Wrench,
+      roles: ['bengkel_owner', 'bengkel_staff']
+    },
+    {
+      id: 'pelanggan' as ActiveView,
+      label: 'Manajemen Pelanggan',
+      icon: Users,
       roles: ['bengkel_owner', 'bengkel_staff']
     },
     {
@@ -104,6 +97,8 @@ export default function Dashboard() {
         return <DashboardUtama isLoading={loading} />;
       case 'servis':
         return <ManajemenServis isLoading={loading} />;
+      case 'pelanggan':
+        return <ManajemenPelanggan isLoading={loading} />;
       case 'sparepart':
         return <KatalogSparepart isLoading={loading} />;
       case 'admin_super':

@@ -24,7 +24,8 @@ export default function AddSparepartModal({ open, onOpenChange, onSparepartAdded
     brand: '',
     stock: '',
     minimumStock: '',
-    price: '',
+    purchasePrice: '',
+    sellingPrice: '',
     supplier: '',
     location: '',
     imageUrl: ''
@@ -75,7 +76,8 @@ export default function AddSparepartModal({ open, onOpenChange, onSparepartAdded
           brand: formData.brand,
           stock: formData.stock ? parseInt(formData.stock) : 0,
           minimum_stock: formData.minimumStock ? parseInt(formData.minimumStock) : 0,
-          price: formData.price ? parseFloat(formData.price) : 0,
+          purchase_price: formData.purchasePrice ? parseFloat(formData.purchasePrice) : null,
+          selling_price: formData.sellingPrice ? parseFloat(formData.sellingPrice) : null,
           supplier: formData.supplier || null,
           location: formData.location || null,
           image_url: formData.imageUrl || null
@@ -95,7 +97,8 @@ export default function AddSparepartModal({ open, onOpenChange, onSparepartAdded
         brand: '',
         stock: '',
         minimumStock: '',
-        price: '',
+        purchasePrice: '',
+        sellingPrice: '',
         supplier: '',
         location: '',
         imageUrl: ''
@@ -197,36 +200,40 @@ export default function AddSparepartModal({ open, onOpenChange, onSparepartAdded
             </div>
             
             <div className="space-y-2">
-              <Label htmlFor="price">Harga (Rp)</Label>
+              <Label htmlFor="supplier">Supplier</Label>
               <Input
-                id="price"
-                type="number"
-                min="0"
-                value={formData.price}
-                onChange={(e) => handleInputChange('price', e.target.value)}
+                id="supplier"
+                value={formData.supplier}
+                onChange={(e) => handleInputChange('supplier', e.target.value)}
+                placeholder="Nama supplier/distributor"
               />
             </div>
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="supplier">Supplier</Label>
-            <Input
-              id="supplier"
-              value={formData.supplier}
-              onChange={(e) => handleInputChange('supplier', e.target.value)}
-              placeholder="Nama supplier/distributor"
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="imageUrl">URL Gambar</Label>
-            <Input
-              id="imageUrl"
-              type="url"
-              value={formData.imageUrl}
-              onChange={(e) => handleInputChange('imageUrl', e.target.value)}
-              placeholder="https://example.com/image.jpg"
-            />
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="purchasePrice">Harga Beli (Rp)</Label>
+              <Input
+                id="purchasePrice"
+                type="number"
+                min="0"
+                value={formData.purchasePrice}
+                onChange={(e) => handleInputChange('purchasePrice', e.target.value)}
+                placeholder="0"
+              />
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="sellingPrice">Harga Jual (Rp)</Label>
+              <Input
+                id="sellingPrice"
+                type="number"
+                min="0"
+                value={formData.sellingPrice}
+                onChange={(e) => handleInputChange('sellingPrice', e.target.value)}
+                placeholder="0"
+              />
+            </div>
           </div>
 
           <div className="flex justify-end space-x-2 pt-4">

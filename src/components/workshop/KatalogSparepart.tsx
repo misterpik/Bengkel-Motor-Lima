@@ -28,7 +28,9 @@ interface Sparepart {
   brand: string | null;
   stock: number;
   minimum_stock: number;
-  price: number | null;
+  price: number | null; // Keep for backward compatibility
+  purchase_price: number | null;
+  selling_price: number | null;
   supplier: string | null;
   location: string | null;
   image_url: string | null;
@@ -99,7 +101,10 @@ export default function KatalogSparepart({ isLoading = false }: KatalogSparepart
     const total = spareparts.length;
     const kritis = spareparts.filter(item => item.stock <= item.minimum_stock * 0.3).length;
     const menipis = spareparts.filter(item => item.stock <= item.minimum_stock && item.stock > item.minimum_stock * 0.3).length;
-    const totalValue = spareparts.reduce((total, item) => total + ((item.price || 0) * item.stock), 0);
+    const totalValue = spareparts.reduce((total, item) => {
+      const price = item.selling_price || item.price || 0;
+      return total + (price * item.stock);
+    }, 0);
     
     return { total, kritis, menipis, totalValue };
   };
@@ -278,9 +283,16 @@ export default function KatalogSparepart({ isLoading = false }: KatalogSparepart
                     
                     <div className="flex justify-between items-center pt-2">
                       <div>
-                        <p className="text-lg font-bold text-blue-600">
-                          Rp {(item.price || 0).toLocaleString('id-ID')}
-                        </p>
+                        <div className="space-y-1">
+                          {item.purchase_price && (
+                            <p className="text-sm text-gray-500">
+                              Beli: Rp {item.purchase_price.toLocaleString('id-ID')}
+                            </p>
+                          )}
+                          <p className="text-lg font-bold text-blue-600">
+                            Jual: Rp {(item.selling_price || item.price || 0).toLocaleString('id-ID')}
+                          </p>
+                        </div>
                         <p className="text-sm text-gray-500">
                           Stok: {item.stock} / Min: {item.minimum_stock}
                         </p>
@@ -323,7 +335,10 @@ export default function KatalogSparepart({ isLoading = false }: KatalogSparepart
                       Stok
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Harga
+                      Harga Beli
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Harga Jual
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Status
@@ -357,8 +372,11 @@ export default function KatalogSparepart({ isLoading = false }: KatalogSparepart
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                           {item.stock} / {item.minimum_stock}
                         </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-600">
+                          {item.purchase_price ? `Rp ${item.purchase_price.toLocaleString('id-ID')}` : '-'}
+                        </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-blue-600">
-                          Rp {(item.price || 0).toLocaleString('id-ID')}
+                          Rp {(item.selling_price || item.price || 0).toLocaleString('id-ID')}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <Badge className={stockStatus.color}>
