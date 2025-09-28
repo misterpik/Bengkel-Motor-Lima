@@ -472,39 +472,72 @@ export type Database = {
       tenants: {
         Row: {
           address: string | null
+          auto_backup: boolean | null
+          business_hours_close: string | null
+          business_hours_open: string | null
           created_at: string | null
+          description: string | null
           email: string
+          email_notifications: boolean | null
           id: string
+          invoice_template: string | null
+          logo_url: string | null
           name: string
           owner_name: string
           package: string | null
           phone: string | null
+          service_tax_rate: number | null
+          sms_notifications: boolean | null
+          social_media: string | null
           status: string | null
           updated_at: string | null
+          website: string | null
         }
         Insert: {
           address?: string | null
+          auto_backup?: boolean | null
+          business_hours_close?: string | null
+          business_hours_open?: string | null
           created_at?: string | null
+          description?: string | null
           email: string
+          email_notifications?: boolean | null
           id?: string
+          invoice_template?: string | null
+          logo_url?: string | null
           name: string
           owner_name: string
           package?: string | null
           phone?: string | null
+          service_tax_rate?: number | null
+          sms_notifications?: boolean | null
+          social_media?: string | null
           status?: string | null
           updated_at?: string | null
+          website?: string | null
         }
         Update: {
           address?: string | null
+          auto_backup?: boolean | null
+          business_hours_close?: string | null
+          business_hours_open?: string | null
           created_at?: string | null
+          description?: string | null
           email?: string
+          email_notifications?: boolean | null
           id?: string
+          invoice_template?: string | null
+          logo_url?: string | null
           name?: string
           owner_name?: string
           package?: string | null
           phone?: string | null
+          service_tax_rate?: number | null
+          sms_notifications?: boolean | null
+          social_media?: string | null
           status?: string | null
           updated_at?: string | null
+          website?: string | null
         }
         Relationships: []
       }

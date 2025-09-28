@@ -14,9 +14,13 @@ import {
   Clock,
   CheckCircle,
   AlertCircle,
-  CreditCard
+  CreditCard,
+  Phone,
+  FileText,
+  DollarSign
 } from 'lucide-react';
 import { supabase } from '../../../supabase/supabase';
+import { useAuth } from '../../../supabase/auth';
 import { useToast } from '@/components/ui/use-toast';
 
 interface Service {
@@ -34,6 +38,9 @@ interface Service {
   technician: string | null;
   estimated_cost: number | null;
   actual_cost: number | null;
+  service_fee: number | null;
+  spareparts_total: number | null;
+  payment_status: string | null;
   progress: number;
   created_at: string;
   updated_at: string;
@@ -49,12 +56,13 @@ interface ServiceDetailModalProps {
 }
 
 export default function ServiceDetailModal({ open, onOpenChange, serviceId, onEdit, onPrintInvoice, onProcessPayment }: ServiceDetailModalProps) {
+  const { tenantId } = useAuth();
   const { toast } = useToast();
   const [service, setService] = useState<Service | null>(null);
   const [loading, setLoading] = useState(false);
 
   const fetchServiceDetail = async () => {
-    if (!serviceId) return;
+    if (!serviceId || !tenantId) return;
     
     setLoading(true);
     try {
@@ -62,6 +70,7 @@ export default function ServiceDetailModal({ open, onOpenChange, serviceId, onEd
         .from('services')
         .select('*')
         .eq('id', serviceId)
+        .eq('tenant_id', tenantId)
         .single();
 
       if (error) throw error;
@@ -72,6 +81,7 @@ export default function ServiceDetailModal({ open, onOpenChange, serviceId, onEd
         description: "Gagal memuat detail servis",
         variant: "destructive",
       });
+      console.error('Error fetching service detail:', error);
     } finally {
       setLoading(false);
     }

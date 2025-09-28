@@ -6,6 +6,7 @@ import KatalogSparepart from '../workshop/KatalogSparepart';
 import ManajemenPelanggan from '../workshop/ManajemenPelanggan';
 import PanelAdminSuper from '../workshop/PanelAdminSuper';
 import LaporanKeuangan from '../workshop/LaporanKeuangan';
+import PengaturanBengkel from '../workshop/PengaturanBengkel';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
@@ -114,18 +115,7 @@ export default function Dashboard() {
       case 'admin_super':
         return <PanelAdminSuper isLoading={loading} />;
       case 'pengaturan':
-        return (
-          <div className="space-y-6 bg-white min-h-screen p-6">
-            <div className="mb-8">
-              <h1 className="text-3xl font-bold text-gray-900 mb-2">Pengaturan Bengkel</h1>
-              <p className="text-gray-600">Kelola pengaturan dan konfigurasi bengkel Anda</p>
-            </div>
-            <div className="bg-gray-50 rounded-lg p-8 text-center">
-              <Settings className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-              <p className="text-gray-600">Halaman pengaturan akan segera tersedia</p>
-            </div>
-          </div>
-        );
+        return <PengaturanBengkel />;
       default:
         return <DashboardUtama isLoading={loading} />;
     }
