@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { BarChart3, Wrench, Package, Calendar, TrendingUp, AlertTriangle } from 'lucide-react';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { supabase } from '../../../supabase/supabase';
 import { useAuth } from '../../../supabase/auth';
 import { useToast } from '@/components/ui/use-toast';
@@ -34,6 +35,12 @@ interface LowStockItem {
   minimum_stock: number;
 }
 
+interface RevenueData {
+  date: string;
+  revenue: number;
+  services: number;
+}
+
 export default function DashboardUtama({ isLoading = false }: DashboardUtamaProps) {
   const { tenantId } = useAuth();
   const { toast } = useToast();
@@ -47,6 +54,7 @@ export default function DashboardUtama({ isLoading = false }: DashboardUtamaProp
   });
   const [recentServices, setRecentServices] = useState<RecentService[]>([]);
   const [lowStockItems, setLowStockItems] = useState<LowStockItem[]>([]);
+  const [revenueData, setRevenueData] = useState<RevenueData[]>([]);
 
   const fetchDashboardData = async () => {
     if (!tenantId) return;
@@ -77,8 +85,11 @@ export default function DashboardUtama({ isLoading = false }: DashboardUtamaProp
         s.updated_at?.startsWith(today)
       ).length || 0;
       
-      const totalRevenue = services?.reduce((sum, service) => {
-        if (service.status === 'Selesai' && service.actual_cost) {
+      // Calculate TODAY'S revenue only (not total cumulative)
+      const todayRevenue = services?.reduce((sum, service) => {
+        if (service.status === 'Selesai' && 
+            service.actual_cost && 
+            service.updated_at?.startsWith(today)) {
           return sum + service.actual_cost;
         }
         return sum;
@@ -87,7 +98,7 @@ export default function DashboardUtama({ isLoading = false }: DashboardUtamaProp
       const lowStock = spareparts?.filter(item => item.stock <= item.minimum_stock) || [];
       
       setStats({
-        totalRevenue,
+        totalRevenue: todayRevenue, // Now shows only today's revenue
         activeServices,
         completedToday,
         lowStockItems: lowStock.length,
@@ -110,6 +121,10 @@ export default function DashboardUtama({ isLoading = false }: DashboardUtamaProp
       // Set low stock items (first 4)
       setLowStockItems(lowStock.slice(0, 4));
 
+      // Generate revenue data for last 7 days
+      const revenueChartData = generateRevenueData(services || []);
+      setRevenueData(revenueChartData);
+
     } catch (error: any) {
       toast({
         title: "Error",
@@ -119,6 +134,45 @@ export default function DashboardUtama({ isLoading = false }: DashboardUtamaProp
     } finally {
       setLoading(false);
     }
+  };
+
+  const generateRevenueData = (services: any[]): RevenueData[] => {
+    const last7Days = [];
+    const today = new Date();
+    
+    // Generate last 7 days
+    for (let i = 6; i >= 0; i--) {
+      const date = new Date(today);
+      date.setDate(date.getDate() - i);
+      const dateStr = date.toISOString().split('T')[0];
+      
+      // Calculate revenue for this date
+      const dayRevenue = services
+        .filter(service => 
+          service.status === 'Selesai' && 
+          service.updated_at?.startsWith(dateStr) &&
+          service.actual_cost
+        )
+        .reduce((sum, service) => sum + service.actual_cost, 0);
+
+      // Count completed services for this date
+      const dayServices = services
+        .filter(service => 
+          service.status === 'Selesai' && 
+          service.updated_at?.startsWith(dateStr)
+        ).length;
+
+      last7Days.push({
+        date: date.toLocaleDateString('id-ID', { 
+          day: '2-digit', 
+          month: 'short' 
+        }),
+        revenue: dayRevenue,
+        services: dayServices
+      });
+    }
+    
+    return last7Days;
   };
 
   useEffect(() => {
@@ -295,7 +349,7 @@ export default function DashboardUtama({ isLoading = false }: DashboardUtamaProp
         </Card>
       </div>
 
-      {/* Revenue Chart Placeholder */}
+      {/* Revenue Chart */}
       <Card className="shadow-lg">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
@@ -304,12 +358,57 @@ export default function DashboardUtama({ isLoading = false }: DashboardUtamaProp
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="h-64 bg-gradient-to-r from-blue-50 to-indigo-100 rounded-lg flex items-center justify-center">
-            <div className="text-center">
-              <BarChart3 className="h-12 w-12 text-blue-400 mx-auto mb-2" />
-              <p className="text-gray-600">Grafik pendapatan akan ditampilkan di sini</p>
-              <p className="text-sm text-gray-500 mt-1">
-                Total Revenue: Rp {stats.totalRevenue.toLocaleString('id-ID')}
+          <div className="h-64">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={revenueData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                <XAxis 
+                  dataKey="date" 
+                  tick={{ fontSize: 12 }}
+                  stroke="#666"
+                />
+                <YAxis 
+                  tick={{ fontSize: 12 }}
+                  stroke="#666"
+                  tickFormatter={(value) => `${(value / 1000).toFixed(0)}k`}
+                />
+                <Tooltip 
+                  formatter={(value: number, name: string) => [
+                    name === 'revenue' 
+                      ? `Rp ${value.toLocaleString('id-ID')}` 
+                      : `${value} servis`,
+                    name === 'revenue' ? 'Pendapatan' : 'Jumlah Servis'
+                  ]}
+                  labelFormatter={(label) => `Tanggal: ${label}`}
+                  contentStyle={{
+                    backgroundColor: '#fff',
+                    border: '1px solid #e2e8f0',
+                    borderRadius: '8px',
+                    boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
+                  }}
+                />
+                <Bar 
+                  dataKey="revenue" 
+                  fill="#3b82f6" 
+                  radius={[4, 4, 0, 0]}
+                  name="revenue"
+                />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+          
+          {/* Chart Summary */}
+          <div className="mt-4 grid grid-cols-2 gap-4">
+            <div className="text-center p-3 bg-blue-50 rounded-lg">
+              <p className="text-sm text-blue-600 font-medium">Total 7 Hari</p>
+              <p className="text-lg font-bold text-blue-900">
+                Rp {revenueData.reduce((sum, day) => sum + day.revenue, 0).toLocaleString('id-ID')}
+              </p>
+            </div>
+            <div className="text-center p-3 bg-green-50 rounded-lg">
+              <p className="text-sm text-green-600 font-medium">Servis Selesai</p>
+              <p className="text-lg font-bold text-green-900">
+                {revenueData.reduce((sum, day) => sum + day.services, 0)} servis
               </p>
             </div>
           </div>

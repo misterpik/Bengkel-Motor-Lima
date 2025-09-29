@@ -64,6 +64,7 @@ export default function PaymentProcessModal({ open, onOpenChange, serviceId, onP
   const [formData, setFormData] = useState({
     amount: '',
     paymentMethod: '',
+    cashReceived: '',
     notes: ''
   });
 
@@ -156,6 +157,19 @@ export default function PaymentProcessModal({ open, onOpenChange, serviceId, onP
       return;
     }
 
+    // Validate cash payment
+    if (formData.paymentMethod === 'Tunai') {
+      const cashReceived = parseFloat(formData.cashReceived);
+      if (!cashReceived || cashReceived < amount) {
+        toast({
+          title: "Error",
+          description: "Jumlah uang yang diterima harus lebih besar atau sama dengan jumlah pembayaran",
+          variant: "destructive",
+        });
+        return;
+      }
+    }
+
     setLoading(true);
     try {
       const paymentNumber = generatePaymentNumber();
@@ -200,15 +214,26 @@ export default function PaymentProcessModal({ open, onOpenChange, serviceId, onP
 
       if (serviceError) throw serviceError;
 
+      // Show success message with change info for cash payments
+      let successMessage = `Pembayaran sebesar Rp ${amount.toLocaleString('id-ID')} berhasil diproses`;
+      if (formData.paymentMethod === 'Tunai') {
+        const cashReceived = parseFloat(formData.cashReceived);
+        const change = cashReceived - amount;
+        if (change > 0) {
+          successMessage += `\nKembalian: Rp ${change.toLocaleString('id-ID')}`;
+        }
+      }
+
       toast({
         title: "Berhasil",
-        description: `Pembayaran sebesar Rp ${amount.toLocaleString('id-ID')} berhasil diproses`,
+        description: successMessage,
       });
 
       // Reset form
       setFormData({
         amount: '',
         paymentMethod: '',
+        cashReceived: '',
         notes: ''
       });
 
@@ -262,6 +287,11 @@ export default function PaymentProcessModal({ open, onOpenChange, serviceId, onP
   const totalCost = service.actual_cost || 0;
   const remainingAmount = totalCost - totalPaid;
   const isFullyPaid = remainingAmount <= 0;
+
+  // Calculate change for cash payments
+  const paymentAmount = parseFloat(formData.amount) || 0;
+  const cashReceived = parseFloat(formData.cashReceived) || 0;
+  const changeAmount = formData.paymentMethod === 'Tunai' && cashReceived > 0 ? cashReceived - paymentAmount : 0;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -446,6 +476,62 @@ export default function PaymentProcessModal({ open, onOpenChange, serviceId, onP
                       </SelectContent>
                     </Select>
                   </div>
+
+                  {/* Cash Payment Fields */}
+                  {formData.paymentMethod === 'Tunai' && (
+                    <>
+                      <div className="space-y-2">
+                        <Label htmlFor="cashReceived">Jumlah Uang Diterima (Rp) *</Label>
+                        <div className="relative">
+                          <Banknote className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                          <Input
+                            id="cashReceived"
+                            type="number"
+                            min={paymentAmount}
+                            value={formData.cashReceived}
+                            onChange={(e) => handleInputChange('cashReceived', e.target.value)}
+                            className="pl-10"
+                            placeholder="0"
+                            required
+                          />
+                        </div>
+                        <p className="text-xs text-gray-500">
+                          Minimal: Rp {paymentAmount.toLocaleString('id-ID')}
+                        </p>
+                      </div>
+
+                      {/* Change Calculation Display */}
+                      {cashReceived > 0 && paymentAmount > 0 && (
+                        <Card className={`border-2 ${changeAmount >= 0 ? 'border-green-200 bg-green-50' : 'border-red-200 bg-red-50'}`}>
+                          <CardContent className="p-4">
+                            <div className="space-y-2">
+                              <div className="flex justify-between items-center">
+                                <span className="text-sm font-medium text-gray-700">Jumlah Pembayaran:</span>
+                                <span className="font-semibold">Rp {paymentAmount.toLocaleString('id-ID')}</span>
+                              </div>
+                              <div className="flex justify-between items-center">
+                                <span className="text-sm font-medium text-gray-700">Uang Diterima:</span>
+                                <span className="font-semibold">Rp {cashReceived.toLocaleString('id-ID')}</span>
+                              </div>
+                              <Separator />
+                              <div className="flex justify-between items-center">
+                                <span className="text-lg font-bold text-gray-900">Kembalian:</span>
+                                <span className={`text-xl font-bold ${changeAmount >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                                  Rp {Math.max(0, changeAmount).toLocaleString('id-ID')}
+                                </span>
+                              </div>
+                              {changeAmount < 0 && (
+                                <div className="flex items-center gap-2 text-red-600 text-sm">
+                                  <AlertCircle className="h-4 w-4" />
+                                  <span>Uang yang diterima kurang dari jumlah pembayaran</span>
+                                </div>
+                              )}
+                            </div>
+                          </CardContent>
+                        </Card>
+                      )}
+                    </>
+                  )}
 
                   <div className="space-y-2">
                     <Label htmlFor="notes">Catatan (Opsional)</Label>

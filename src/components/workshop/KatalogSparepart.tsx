@@ -16,6 +16,8 @@ import {
   RefreshCw
 } from 'lucide-react';
 import AddSparepartModal from './AddSparepartModal';
+import EditSparepartModal from './EditSparepartModal';
+import RestockSparepartModal from './RestockSparepartModal';
 import { supabase } from '../../../supabase/supabase';
 import { useAuth } from '../../../supabase/auth';
 import { useToast } from '@/components/ui/use-toast';
@@ -50,6 +52,9 @@ export default function KatalogSparepart({ isLoading = false }: KatalogSparepart
   const [spareparts, setSpareparts] = useState<Sparepart[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAddModal, setShowAddModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [showRestockModal, setShowRestockModal] = useState(false);
+  const [selectedSparepart, setSelectedSparepart] = useState<Sparepart | null>(null);
 
   const categories = ['Semua', 'Oli & Pelumas', 'Ban & Velg', 'Rem', 'Filter', 'Kelistrikan', 'Transmisi', 'Mesin', 'Body & Aksesoris', 'Lainnya'];
 
@@ -147,6 +152,21 @@ export default function KatalogSparepart({ isLoading = false }: KatalogSparepart
       </div>
     );
   }
+
+  const handleEditSparepart = (sparepart: Sparepart) => {
+    setSelectedSparepart(sparepart);
+    setShowEditModal(true);
+  };
+
+  const handleRestockSparepart = (sparepart: Sparepart) => {
+    setSelectedSparepart(sparepart);
+    setShowRestockModal(true);
+  };
+
+  const handleSparepartUpdated = () => {
+    fetchSpareparts();
+    setSelectedSparepart(null);
+  };
 
   return (
     <div className="space-y-6 bg-white min-h-screen p-6">
@@ -324,11 +344,20 @@ export default function KatalogSparepart({ isLoading = false }: KatalogSparepart
                     </div>
                     
                     <div className="flex gap-2 pt-2">
-                      <Button variant="outline" size="sm" className="flex-1">
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        className="flex-1"
+                        onClick={() => handleEditSparepart(item)}
+                      >
                         <Edit className="h-4 w-4 mr-1" />
                         Edit
                       </Button>
-                      <Button size="sm" className="flex-1 bg-green-600 hover:bg-green-700">
+                      <Button 
+                        size="sm" 
+                        className="flex-1 bg-green-600 hover:bg-green-700"
+                        onClick={() => handleRestockSparepart(item)}
+                      >
                         <ShoppingCart className="h-4 w-4 mr-1" />
                         Restock
                       </Button>
@@ -406,10 +435,18 @@ export default function KatalogSparepart({ isLoading = false }: KatalogSparepart
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                           <div className="flex gap-2">
-                            <Button variant="outline" size="sm">
+                            <Button 
+                              variant="outline" 
+                              size="sm"
+                              onClick={() => handleEditSparepart(item)}
+                            >
                               <Edit className="h-4 w-4" />
                             </Button>
-                            <Button size="sm" className="bg-green-600 hover:bg-green-700">
+                            <Button 
+                              size="sm" 
+                              className="bg-green-600 hover:bg-green-700"
+                              onClick={() => handleRestockSparepart(item)}
+                            >
                               <ShoppingCart className="h-4 w-4" />
                             </Button>
                           </div>
@@ -428,6 +465,20 @@ export default function KatalogSparepart({ isLoading = false }: KatalogSparepart
         open={showAddModal}
         onOpenChange={setShowAddModal}
         onSparepartAdded={fetchSpareparts}
+      />
+
+      <EditSparepartModal
+        open={showEditModal}
+        onOpenChange={setShowEditModal}
+        sparepart={selectedSparepart}
+        onSparepartUpdated={handleSparepartUpdated}
+      />
+
+      <RestockSparepartModal
+        open={showRestockModal}
+        onOpenChange={setShowRestockModal}
+        sparepart={selectedSparepart}
+        onSparepartUpdated={handleSparepartUpdated}
       />
     </div>
   );

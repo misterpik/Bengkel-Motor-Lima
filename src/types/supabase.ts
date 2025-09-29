@@ -410,6 +410,7 @@ export type Database = {
           category: string | null
           code: string
           created_at: string | null
+          description: string | null
           id: string
           image_url: string | null
           location: string | null
@@ -428,6 +429,7 @@ export type Database = {
           category?: string | null
           code: string
           created_at?: string | null
+          description?: string | null
           id?: string
           image_url?: string | null
           location?: string | null
@@ -446,6 +448,7 @@ export type Database = {
           category?: string | null
           code?: string
           created_at?: string | null
+          description?: string | null
           id?: string
           image_url?: string | null
           location?: string | null
