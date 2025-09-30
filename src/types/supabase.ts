@@ -14,6 +14,47 @@ export type Database = {
   }
   public: {
     Tables: {
+      costs: {
+        Row: {
+          amount: number
+          cost_date: string
+          cost_name: string
+          created_at: string | null
+          id: string
+          notes: string | null
+          tenant_id: string
+          updated_at: string | null
+        }
+        Insert: {
+          amount: number
+          cost_date?: string
+          cost_name: string
+          created_at?: string | null
+          id?: string
+          notes?: string | null
+          tenant_id: string
+          updated_at?: string | null
+        }
+        Update: {
+          amount?: number
+          cost_date?: string
+          cost_name?: string
+          created_at?: string | null
+          id?: string
+          notes?: string | null
+          tenant_id?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "costs_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       customer_vehicles: {
         Row: {
           brand: string | null

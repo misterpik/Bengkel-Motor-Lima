@@ -13,11 +13,13 @@ import {
   Calendar,
   Download,
   RefreshCw,
-  BarChart3
+  BarChart3,
+  Plus
 } from 'lucide-react';
 import { supabase } from '../../../supabase/supabase';
 import { useAuth } from '../../../supabase/auth';
 import { useToast } from '@/components/ui/use-toast';
+import AddCostModal from './AddCostModal';
 
 interface FinancialData {
   totalIncome: number;
@@ -26,6 +28,8 @@ interface FinancialData {
   transactionCount: number;
   serviceCount: number;
   sparepartCount: number;
+  operationalCosts: number;
+  sparepartExpenses: number;
 }
 
 interface DailyReport {
@@ -48,9 +52,12 @@ export default function LaporanKeuangan() {
     netProfit: 0,
     transactionCount: 0,
     serviceCount: 0,
-    sparepartCount: 0
+    sparepartCount: 0,
+    operationalCosts: 0,
+    sparepartExpenses: 0
   });
   const [dailyReports, setDailyReports] = useState<DailyReport[]>([]);
+  const [showAddCostModal, setShowAddCostModal] = useState(false);
 
   const fetchFinancialData = async () => {
     if (!tenantId) return;
@@ -107,6 +114,16 @@ export default function LaporanKeuangan() {
 
       if (sparepartsError) throw sparepartsError;
 
+      // Fetch costs (additional expenses)
+      const { data: costs, error: costsError } = await supabase
+        .from('costs')
+        .select('amount, cost_date')
+        .eq('tenant_id', tenantId)
+        .gte('cost_date', startDate.toISOString().split('T')[0])
+        .lte('cost_date', endDate.toISOString().split('T')[0]);
+
+      if (costsError) throw costsError;
+
       // Fetch services count
       const { data: services, error: servicesError } = await supabase
         .from('services')
@@ -120,11 +137,14 @@ export default function LaporanKeuangan() {
       // Calculate totals
       const totalIncome = payments?.reduce((sum, payment) => sum + payment.amount, 0) || 0;
       
-      const totalExpenses = serviceSpareparts?.reduce((sum, item) => {
+      const sparepartExpenses = serviceSpareparts?.reduce((sum, item) => {
         const purchasePrice = item.spareparts?.purchase_price || 0;
         return sum + (purchasePrice * item.quantity);
       }, 0) || 0;
 
+      const operationalCosts = costs?.reduce((sum, cost) => sum + cost.amount, 0) || 0;
+      
+      const totalExpenses = sparepartExpenses + operationalCosts;
       const netProfit = totalIncome - totalExpenses;
 
       setFinancialData({
@@ -133,7 +153,9 @@ export default function LaporanKeuangan() {
         netProfit,
         transactionCount: payments?.length || 0,
         serviceCount: services?.length || 0,
-        sparepartCount: serviceSpareparts?.length || 0
+        sparepartCount: serviceSpareparts?.length || 0,
+        operationalCosts,
+        sparepartExpenses
       });
 
       // Generate daily breakdown for weekly/monthly views
@@ -160,12 +182,19 @@ export default function LaporanKeuangan() {
             const serviceDate = new Date(sp.services.created_at);
             return serviceDate >= dayStart && serviceDate <= dayEnd;
           }) || [];
+
+          const dayCosts = costs?.filter(cost => {
+            const costDate = new Date(cost.cost_date);
+            return costDate >= dayStart && costDate <= dayEnd;
+          }) || [];
           
           const dayIncome = dayPayments.reduce((sum, p) => sum + p.amount, 0);
-          const dayExpenses = daySpareparts.reduce((sum, sp) => {
+          const daySparepartExpenses = daySpareparts.reduce((sum, sp) => {
             const purchasePrice = sp.spareparts?.purchase_price || 0;
             return sum + (purchasePrice * sp.quantity);
           }, 0);
+          const dayOperationalCosts = dayCosts.reduce((sum, cost) => sum + cost.amount, 0);
+          const dayExpenses = daySparepartExpenses + dayOperationalCosts;
           
           dailyBreakdown.push({
             date: currentDate.toISOString().split('T')[0],
@@ -257,6 +286,11 @@ export default function LaporanKeuangan() {
             <Button onClick={fetchFinancialData} disabled={loading} className="flex items-center gap-2">
               <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
               Refresh
+            </Button>
+            
+            <Button onClick={() => setShowAddCostModal(true)} className="flex items-center gap-2">
+              <Plus className="h-4 w-4" />
+              Tambah Biaya
             </Button>
           </div>
         </div>
@@ -451,6 +485,19 @@ export default function LaporanKeuangan() {
                 <div className="flex justify-between items-center">
                   <span className="text-gray-600">Harga Beli Sparepart</span>
                   <span className="font-semibold text-red-600">
+                    {formatCurrency(financialData.sparepartExpenses)}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-gray-600">Biaya Operasional</span>
+                  <span className="font-semibold text-red-600">
+                    {formatCurrency(financialData.operationalCosts)}
+                  </span>
+                </div>
+                <Separator />
+                <div className="flex justify-between items-center font-semibold">
+                  <span className="text-gray-900">Total Pengeluaran</span>
+                  <span className="text-red-600">
                     {formatCurrency(financialData.totalExpenses)}
                   </span>
                 </div>
@@ -461,15 +508,15 @@ export default function LaporanKeuangan() {
                 </div>
                 {financialData.sparepartCount > 0 && (
                   <div className="flex justify-between items-center">
-                    <span className="text-gray-600">Rata-rata Harga Beli</span>
+                    <span className="text-gray-600">Rata-rata Harga Beli Sparepart</span>
                     <span className="font-semibold">
-                      {formatCurrency(financialData.totalExpenses / financialData.sparepartCount)}
+                      {formatCurrency(financialData.sparepartExpenses / financialData.sparepartCount)}
                     </span>
                   </div>
                 )}
                 <div className="mt-4 p-3 bg-yellow-50 rounded-lg">
                   <p className="text-sm text-yellow-800">
-                    <strong>Catatan:</strong> Pengeluaran dihitung berdasarkan harga beli sparepart yang digunakan dalam servis.
+                    <strong>Catatan:</strong> Pengeluaran mencakup harga beli sparepart yang digunakan dalam servis dan biaya operasional (gaji, listrik, air, dll).
                   </p>
                 </div>
               </div>
@@ -486,6 +533,12 @@ export default function LaporanKeuangan() {
             </div>
           </div>
         )}
+
+        <AddCostModal
+          open={showAddCostModal}
+          onOpenChange={setShowAddCostModal}
+          onCostAdded={fetchFinancialData}
+        />
       </div>
     </div>
   );

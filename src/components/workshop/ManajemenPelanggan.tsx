@@ -19,6 +19,9 @@ import {
   User
 } from 'lucide-react';
 import AddCustomerModal from './AddCustomerModal';
+import CustomerDetailModal from './CustomerDetailModal';
+import EditCustomerModal from './EditCustomerModal';
+import AddServiceModal from './AddServiceModal';
 import { supabase } from '../../../supabase/supabase';
 import { useAuth } from '../../../supabase/auth';
 import { useToast } from '@/components/ui/use-toast';
@@ -59,6 +62,10 @@ export default function ManajemenPelanggan({ isLoading = false }: ManajemenPelan
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAddModal, setShowAddModal] = useState(false);
+  const [showDetailModal, setShowDetailModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [showAddServiceModal, setShowAddServiceModal] = useState(false);
+  const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
 
   const fetchCustomers = async () => {
     if (!tenantId) return;
@@ -117,6 +124,26 @@ export default function ManajemenPelanggan({ isLoading = false }: ManajemenPelan
   const getPrimaryVehicle = (vehicles?: Vehicle[]) => {
     if (!vehicles || vehicles.length === 0) return null;
     return vehicles.find(v => v.is_primary) || vehicles[0];
+  };
+
+  const handleViewDetail = (customer: Customer) => {
+    setSelectedCustomer(customer);
+    setShowDetailModal(true);
+  };
+
+  const handleEditCustomer = (customer: Customer) => {
+    setSelectedCustomer(customer);
+    setShowEditModal(true);
+  };
+
+  const handleAddService = (customer: Customer) => {
+    setSelectedCustomer(customer);
+    setShowAddServiceModal(true);
+  };
+
+  const handleCustomerUpdated = () => {
+    fetchCustomers();
+    setSelectedCustomer(null);
   };
 
   if (isLoading || loading) {
@@ -346,15 +373,29 @@ export default function ManajemenPelanggan({ isLoading = false }: ManajemenPelan
                       </div>
                       
                       <div className="flex flex-col gap-2">
-                        <Button variant="outline" size="sm" className="flex items-center gap-2">
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          className="flex items-center gap-2"
+                          onClick={() => handleViewDetail(customer)}
+                        >
                           <Eye className="h-4 w-4" />
                           Detail
                         </Button>
-                        <Button variant="outline" size="sm" className="flex items-center gap-2">
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          className="flex items-center gap-2"
+                          onClick={() => handleEditCustomer(customer)}
+                        >
                           <Edit className="h-4 w-4" />
                           Edit
                         </Button>
-                        <Button size="sm" className="bg-green-600 hover:bg-green-700 text-white flex items-center gap-2">
+                        <Button 
+                          size="sm" 
+                          className="bg-green-600 hover:bg-green-700 text-white flex items-center gap-2"
+                          onClick={() => handleAddService(customer)}
+                        >
                           <Plus className="h-4 w-4" />
                           Tambah Servis
                         </Button>
@@ -372,6 +413,28 @@ export default function ManajemenPelanggan({ isLoading = false }: ManajemenPelan
         open={showAddModal}
         onOpenChange={setShowAddModal}
         onCustomerAdded={fetchCustomers}
+      />
+
+      <CustomerDetailModal
+        open={showDetailModal}
+        onOpenChange={setShowDetailModal}
+        customer={selectedCustomer}
+        onEditCustomer={handleEditCustomer}
+        onAddService={handleAddService}
+      />
+
+      <EditCustomerModal
+        open={showEditModal}
+        onOpenChange={setShowEditModal}
+        customer={selectedCustomer}
+        onCustomerUpdated={handleCustomerUpdated}
+      />
+
+      <AddServiceModal
+        open={showAddServiceModal}
+        onOpenChange={setShowAddServiceModal}
+        preSelectedCustomer={selectedCustomer}
+        onServiceAdded={handleCustomerUpdated}
       />
     </div>
   );
