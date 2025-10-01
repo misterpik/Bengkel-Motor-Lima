@@ -61,6 +61,7 @@ export default function PaymentProcessModal({ open, onOpenChange, serviceId, onP
   const [fetchLoading, setFetchLoading] = useState(false);
   const [service, setService] = useState<Service | null>(null);
   const [existingPayments, setExistingPayments] = useState<Payment[]>([]);
+  const [serviceTaxRate, setServiceTaxRate] = useState(0);
   const [formData, setFormData] = useState({
     amount: '',
     paymentMethod: '',
@@ -77,7 +78,7 @@ export default function PaymentProcessModal({ open, onOpenChange, serviceId, onP
   ];
 
   const fetchServiceData = async () => {
-    if (!serviceId) return;
+    if (!serviceId || !tenantId) return;
     
     setFetchLoading(true);
     try {
@@ -90,6 +91,15 @@ export default function PaymentProcessModal({ open, onOpenChange, serviceId, onP
 
       if (serviceError) throw serviceError;
 
+      // Fetch tenant tax rate
+      const { data: tenantData, error: tenantError } = await supabase
+        .from('tenants')
+        .select('service_tax_rate')
+        .eq('id', tenantId)
+        .single();
+
+      if (tenantError) throw tenantError;
+
       // Fetch existing payments
       const { data: paymentsData, error: paymentsError } = await supabase
         .from('payments')
@@ -100,11 +110,19 @@ export default function PaymentProcessModal({ open, onOpenChange, serviceId, onP
       if (paymentsError) throw paymentsError;
 
       setService(serviceData);
+      setServiceTaxRate(tenantData?.service_tax_rate || 0);
       setExistingPayments(paymentsData || []);
+      
+      // Calculate total with tax
+      const sparepartsTotal = service.spareparts_total || 0;
+      const serviceFee = service.service_fee || 0;
+      const subtotal = sparepartsTotal + serviceFee;
+      const taxAmount = (subtotal * serviceTaxRate) / 100;
+      const totalCost = subtotal + taxAmount;
       
       // Set default amount to remaining balance
       const totalPaid = (paymentsData || []).reduce((sum, payment) => sum + payment.amount, 0);
-      const remainingAmount = (serviceData.actual_cost || 0) - totalPaid;
+      const remainingAmount = totalCost - totalPaid;
       setFormData(prev => ({
         ...prev,
         amount: remainingAmount > 0 ? remainingAmount.toString() : '0'
@@ -284,7 +302,14 @@ export default function PaymentProcessModal({ open, onOpenChange, serviceId, onP
   }
 
   const totalPaid = existingPayments.reduce((sum, payment) => sum + payment.amount, 0);
-  const totalCost = service.actual_cost || 0;
+  
+  // Calculate total with tax
+  const sparepartsTotal = service.spareparts_total || 0;
+  const serviceFee = service.service_fee || 0;
+  const subtotal = sparepartsTotal + serviceFee;
+  const taxAmount = (subtotal * serviceTaxRate) / 100;
+  const totalCost = subtotal + taxAmount;
+  
   const remainingAmount = totalCost - totalPaid;
   const isFullyPaid = remainingAmount <= 0;
 
@@ -327,12 +352,22 @@ export default function PaymentProcessModal({ open, onOpenChange, serviceId, onP
               <Separator />
               <div className="flex justify-between">
                 <span className="text-gray-600">Biaya Sparepart:</span>
-                <span>Rp {(service.spareparts_total || 0).toLocaleString('id-ID')}</span>
+                <span>Rp {sparepartsTotal.toLocaleString('id-ID')}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-gray-600">Biaya Jasa:</span>
-                <span>Rp {(service.service_fee || 0).toLocaleString('id-ID')}</span>
+                <span>Rp {serviceFee.toLocaleString('id-ID')}</span>
               </div>
+              <div className="flex justify-between">
+                <span className="text-gray-600">Subtotal:</span>
+                <span>Rp {subtotal.toLocaleString('id-ID')}</span>
+              </div>
+              {serviceTaxRate > 0 && (
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Pajak ({serviceTaxRate}%):</span>
+                  <span>Rp {taxAmount.toLocaleString('id-ID')}</span>
+                </div>
+              )}
               <div className="flex justify-between text-lg font-bold">
                 <span>Total Biaya:</span>
                 <span className="text-green-600">Rp {totalCost.toLocaleString('id-ID')}</span>

@@ -56,6 +56,7 @@ interface Tenant {
   email: string;
   phone: string | null;
   address: string | null;
+  service_tax_rate: number | null;
 }
 
 interface InvoicePrintModalProps {
@@ -218,6 +219,14 @@ export default function InvoicePrintModal({ open, onOpenChange, serviceId }: Inv
     day: 'numeric'
   });
 
+  // Calculate tax on total of spareparts and service costs
+  const sparepartsTotal = service.spareparts_total || 0;
+  const serviceFee = service.service_fee || 0;
+  const subtotal = sparepartsTotal + serviceFee;
+  const taxRate = tenant.service_tax_rate || 0;
+  const taxAmount = (subtotal * taxRate) / 100;
+  const grandTotal = subtotal + taxAmount;
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
@@ -370,17 +379,27 @@ export default function InvoicePrintModal({ open, onOpenChange, serviceId }: Inv
               <div className="space-y-3">
                 <div className="row flex justify-between text-lg">
                   <span className="label">Biaya Sparepart:</span>
-                  <span>Rp {(service.spareparts_total || 0).toLocaleString('id-ID')}</span>
+                  <span>Rp {sparepartsTotal.toLocaleString('id-ID')}</span>
                 </div>
                 <div className="row flex justify-between text-lg">
                   <span className="label">Biaya Jasa:</span>
-                  <span>Rp {(service.service_fee || 0).toLocaleString('id-ID')}</span>
+                  <span>Rp {serviceFee.toLocaleString('id-ID')}</span>
                 </div>
+                <div className="row flex justify-between text-lg border-t pt-2">
+                  <span className="label">Subtotal:</span>
+                  <span>Rp {subtotal.toLocaleString('id-ID')}</span>
+                </div>
+                {taxRate > 0 && (
+                  <div className="row flex justify-between text-lg">
+                    <span className="label">Pajak ({taxRate}%):</span>
+                    <span>Rp {taxAmount.toLocaleString('id-ID')}</span>
+                  </div>
+                )}
                 <Separator />
                 <div className="row flex justify-between text-xl total">
                   <span className="label">TOTAL:</span>
                   <span className="text-green-600">
-                    Rp {(service.actual_cost || 0).toLocaleString('id-ID')}
+                    Rp {grandTotal.toLocaleString('id-ID')}
                   </span>
                 </div>
               </div>

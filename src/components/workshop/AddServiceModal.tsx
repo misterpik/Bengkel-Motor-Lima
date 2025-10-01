@@ -38,6 +38,7 @@ export default function AddServiceModal({ open, onOpenChange, onServiceAdded }: 
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
   const [selectedVehicle, setSelectedVehicle] = useState<Vehicle | null>(null);
+  const [serviceTaxRate, setServiceTaxRate] = useState(0);
   const [formData, setFormData] = useState({
     customerId: '',
     customerName: '',
@@ -51,6 +52,32 @@ export default function AddServiceModal({ open, onOpenChange, onServiceAdded }: 
     technician: '',
     estimatedCost: ''
   });
+
+  const calculateTotalWithTax = (baseAmount: number) => {
+    const taxAmount = (baseAmount * serviceTaxRate) / 100;
+    return baseAmount + taxAmount;
+  };
+
+  const getTaxAmount = (baseAmount: number) => {
+    return (baseAmount * serviceTaxRate) / 100;
+  };
+
+  const fetchWorkshopSettings = async () => {
+    if (!tenantId) return;
+    
+    try {
+      const { data, error } = await supabase
+        .from('tenants')
+        .select('service_tax_rate')
+        .eq('id', tenantId)
+        .single();
+
+      if (error) throw error;
+      setServiceTaxRate(data?.service_tax_rate || 0);
+    } catch (error: any) {
+      console.error('Error fetching workshop settings:', error);
+    }
+  };
 
   const fetchCustomers = async () => {
     if (!tenantId) return;
@@ -84,6 +111,7 @@ export default function AddServiceModal({ open, onOpenChange, onServiceAdded }: 
   useEffect(() => {
     if (open) {
       fetchCustomers();
+      fetchWorkshopSettings();
     }
   }, [open, tenantId]);
 
@@ -150,6 +178,8 @@ export default function AddServiceModal({ open, onOpenChange, onServiceAdded }: 
     try {
       const serviceNumber = generateServiceNumber();
       
+      const baseAmount = formData.estimatedCost ? parseFloat(formData.estimatedCost) : 0;
+      
       const { error } = await supabase
         .from('services')
         .insert({
@@ -165,7 +195,7 @@ export default function AddServiceModal({ open, onOpenChange, onServiceAdded }: 
           vehicle_km: formData.vehicleKm ? parseInt(formData.vehicleKm) : null,
           complaint: formData.complaint,
           technician: formData.technician || null,
-          estimated_cost: formData.estimatedCost ? parseFloat(formData.estimatedCost) : null,
+          estimated_cost: baseAmount > 0 ? baseAmount : null,
           status: 'Antrian',
           progress: 0
         });
@@ -366,7 +396,7 @@ export default function AddServiceModal({ open, onOpenChange, onServiceAdded }: 
             </div>
             
             <div className="space-y-2">
-              <Label htmlFor="estimatedCost">Estimasi Biaya (Rp)</Label>
+              <Label htmlFor="estimatedCost">Estimasi Biaya Dasar (Rp)</Label>
               <Input
                 id="estimatedCost"
                 type="number"
@@ -375,6 +405,9 @@ export default function AddServiceModal({ open, onOpenChange, onServiceAdded }: 
                 onChange={(e) => handleInputChange('estimatedCost', e.target.value)}
                 placeholder="0"
               />
+              <p className="text-xs text-gray-500">
+                Biaya dasar tanpa pajak (pajak akan ditambahkan otomatis pada invoice)
+              </p>
             </div>
           </div>
 

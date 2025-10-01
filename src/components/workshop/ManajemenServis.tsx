@@ -40,6 +40,9 @@ interface Service {
   status: string;
   technician: string | null;
   estimated_cost: number | null;
+  base_cost: number | null;
+  tax_rate: number | null;
+  tax_amount: number | null;
   actual_cost: number | null;
   payment_status: string | null;
   progress: number;
@@ -327,6 +330,9 @@ export default function ManajemenServis({ isLoading = false }: ManajemenServisPr
                           ? `Rp ${service.estimated_cost.toLocaleString('id-ID')}`
                           : 'Belum ditentukan'
                         }
+                      </p>
+                      <p className="text-xs text-gray-500">
+                        (Belum termasuk pajak)
                       </p>
                       {service.payment_status && (
                         <Badge className={

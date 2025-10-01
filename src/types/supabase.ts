@@ -355,6 +355,7 @@ export type Database = {
       services: {
         Row: {
           actual_cost: number | null
+          base_cost: number | null
           complaint: string | null
           created_at: string | null
           customer_id: string | null
@@ -370,6 +371,8 @@ export type Database = {
           service_number: string
           spareparts_total: number | null
           status: string | null
+          tax_amount: number | null
+          tax_rate: number | null
           technician: string | null
           tenant_id: string
           updated_at: string | null
@@ -380,6 +383,7 @@ export type Database = {
         }
         Insert: {
           actual_cost?: number | null
+          base_cost?: number | null
           complaint?: string | null
           created_at?: string | null
           customer_id?: string | null
@@ -395,6 +399,8 @@ export type Database = {
           service_number: string
           spareparts_total?: number | null
           status?: string | null
+          tax_amount?: number | null
+          tax_rate?: number | null
           technician?: string | null
           tenant_id: string
           updated_at?: string | null
@@ -405,6 +411,7 @@ export type Database = {
         }
         Update: {
           actual_cost?: number | null
+          base_cost?: number | null
           complaint?: string | null
           created_at?: string | null
           customer_id?: string | null
@@ -420,6 +427,8 @@ export type Database = {
           service_number?: string
           spareparts_total?: number | null
           status?: string | null
+          tax_amount?: number | null
+          tax_rate?: number | null
           technician?: string | null
           tenant_id?: string
           updated_at?: string | null
