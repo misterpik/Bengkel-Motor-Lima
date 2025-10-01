@@ -219,13 +219,13 @@ export default function InvoicePrintModal({ open, onOpenChange, serviceId }: Inv
     day: 'numeric'
   });
 
-  // Calculate tax on total of spareparts and service costs
+  // Use stored tax values from service instead of calculating automatically
   const sparepartsTotal = service.spareparts_total || 0;
   const serviceFee = service.service_fee || 0;
-  const subtotal = sparepartsTotal + serviceFee;
-  const taxRate = tenant.service_tax_rate || 0;
-  const taxAmount = (subtotal * taxRate) / 100;
-  const grandTotal = subtotal + taxAmount;
+  const subtotal = service.base_cost || (sparepartsTotal + serviceFee);
+  const taxRate = service.tax_rate || 0;
+  const taxAmount = service.tax_amount || 0;
+  const grandTotal = service.actual_cost || (subtotal + taxAmount);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>

@@ -80,17 +80,23 @@ export default function DashboardUtama({ isLoading = false }: DashboardUtamaProp
       // Calculate stats
       const today = new Date().toISOString().split('T')[0];
       const activeServices = services?.filter(s => s.status === 'Dalam Proses').length || 0;
-      const completedToday = services?.filter(s => 
-        s.status === 'Selesai' && 
-        s.updated_at?.startsWith(today)
-      ).length || 0;
       
-      // Calculate TODAY'S revenue only (not total cumulative)
+      // Count only TODAY's completed transactions
+      const completedToday = services?.filter(s => {
+        if (s.status !== 'Selesai' || !s.updated_at) return false;
+        const serviceDate = s.updated_at.split('T')[0];
+        return serviceDate === today;
+      }).length || 0;
+      
+      // Calculate TODAY's revenue only (not total cumulative)
       const todayRevenue = services?.reduce((sum, service) => {
         if (service.status === 'Selesai' && 
             service.actual_cost && 
-            service.updated_at?.startsWith(today)) {
-          return sum + service.actual_cost;
+            service.updated_at) {
+          const serviceDate = service.updated_at.split('T')[0];
+          if (serviceDate === today) {
+            return sum + service.actual_cost;
+          }
         }
         return sum;
       }, 0) || 0;
@@ -146,21 +152,28 @@ export default function DashboardUtama({ isLoading = false }: DashboardUtamaProp
       date.setDate(date.getDate() - i);
       const dateStr = date.toISOString().split('T')[0];
       
-      // Calculate revenue for this date
+      // Calculate revenue for this specific date only
       const dayRevenue = services
-        .filter(service => 
-          service.status === 'Selesai' && 
-          service.updated_at?.startsWith(dateStr) &&
-          service.actual_cost
-        )
+        .filter(service => {
+          if (service.status !== 'Selesai' || !service.actual_cost || !service.updated_at) {
+            return false;
+          }
+          // Extract date part from updated_at and compare
+          const serviceDate = service.updated_at.split('T')[0];
+          return serviceDate === dateStr;
+        })
         .reduce((sum, service) => sum + service.actual_cost, 0);
 
-      // Count completed services for this date
+      // Count completed services for this specific date only
       const dayServices = services
-        .filter(service => 
-          service.status === 'Selesai' && 
-          service.updated_at?.startsWith(dateStr)
-        ).length;
+        .filter(service => {
+          if (service.status !== 'Selesai' || !service.updated_at) {
+            return false;
+          }
+          // Extract date part from updated_at and compare
+          const serviceDate = service.updated_at.split('T')[0];
+          return serviceDate === dateStr;
+        }).length;
 
       last7Days.push({
         date: date.toLocaleDateString('id-ID', { 

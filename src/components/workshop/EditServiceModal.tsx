@@ -71,6 +71,7 @@ export default function EditServiceModal({ open, onOpenChange, serviceId, onServ
   const [fetchLoading, setFetchLoading] = useState(false);
   const [spareparts, setSpareparts] = useState<Sparepart[]>([]);
   const [serviceSpareparts, setServiceSpareparts] = useState<ServiceSparepart[]>([]);
+  const [serviceTaxRate, setServiceTaxRate] = useState(0);
   const [formData, setFormData] = useState({
     customerName: '',
     customerPhone: '',
@@ -125,6 +126,16 @@ export default function EditServiceModal({ open, onOpenChange, serviceId, onServ
         .single();
 
       if (serviceError) throw serviceError;
+
+      // Fetch tenant tax rate
+      const { data: tenantData, error: tenantError } = await supabase
+        .from('tenants')
+        .select('service_tax_rate')
+        .eq('id', tenantId)
+        .single();
+
+      if (tenantError) throw tenantError;
+      setServiceTaxRate(tenantData?.service_tax_rate || 0);
 
       // Fetch service spareparts
       const { data: sparepartsData, error: sparepartsError } = await supabase
@@ -239,12 +250,14 @@ export default function EditServiceModal({ open, onOpenChange, serviceId, onServ
   const calculateTotals = () => {
     const sparepartsTotal = serviceSpareparts.reduce((sum, item) => sum + item.total_price, 0);
     const serviceFee = parseFloat(formData.serviceFee) || 0;
-    const actualCost = sparepartsTotal + serviceFee;
+    const subtotal = sparepartsTotal + serviceFee;
+    const taxAmount = (subtotal * serviceTaxRate) / 100;
+    const actualCost = subtotal + taxAmount;
     
-    return { sparepartsTotal, serviceFee, actualCost };
+    return { sparepartsTotal, serviceFee, subtotal, taxAmount, actualCost };
   };
 
-  const { sparepartsTotal, actualCost } = calculateTotals();
+  const { sparepartsTotal, subtotal, taxAmount, actualCost } = calculateTotals();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -277,6 +290,9 @@ export default function EditServiceModal({ open, onOpenChange, serviceId, onServ
           estimated_cost: formData.estimatedCost ? parseFloat(formData.estimatedCost) : null,
           service_fee: parseFloat(formData.serviceFee) || 0,
           spareparts_total: sparepartsTotal,
+          base_cost: subtotal,
+          tax_rate: serviceTaxRate,
+          tax_amount: taxAmount,
           actual_cost: actualCost,
           status: formData.status,
           progress: formData.progress ? parseInt(formData.progress) : 0,
@@ -667,6 +683,16 @@ export default function EditServiceModal({ open, onOpenChange, serviceId, onServ
                   <span className="text-gray-600">Biaya Jasa:</span>
                   <span className="font-medium">Rp {(parseFloat(formData.serviceFee) || 0).toLocaleString('id-ID')}</span>
                 </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-gray-600">Subtotal:</span>
+                  <span className="font-medium">Rp {subtotal.toLocaleString('id-ID')}</span>
+                </div>
+                {serviceTaxRate > 0 && (
+                  <div className="flex justify-between items-center">
+                    <span className="text-gray-600">Pajak ({serviceTaxRate}%):</span>
+                    <span className="font-medium">Rp {taxAmount.toLocaleString('id-ID')}</span>
+                  </div>
+                )}
                 <Separator />
                 <div className="flex justify-between items-center bg-green-50 p-3 rounded-lg">
                   <span className="text-lg font-semibold text-green-900 flex items-center gap-2">

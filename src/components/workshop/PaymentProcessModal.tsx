@@ -113,16 +113,9 @@ export default function PaymentProcessModal({ open, onOpenChange, serviceId, onP
       setServiceTaxRate(tenantData?.service_tax_rate || 0);
       setExistingPayments(paymentsData || []);
       
-      // Calculate total with tax
-      const sparepartsTotal = service.spareparts_total || 0;
-      const serviceFee = service.service_fee || 0;
-      const subtotal = sparepartsTotal + serviceFee;
-      const taxAmount = (subtotal * serviceTaxRate) / 100;
-      const totalCost = subtotal + taxAmount;
-      
       // Set default amount to remaining balance
       const totalPaid = (paymentsData || []).reduce((sum, payment) => sum + payment.amount, 0);
-      const remainingAmount = totalCost - totalPaid;
+      const remainingAmount = serviceData.actual_cost - totalPaid;
       setFormData(prev => ({
         ...prev,
         amount: remainingAmount > 0 ? remainingAmount.toString() : '0'
@@ -303,12 +296,12 @@ export default function PaymentProcessModal({ open, onOpenChange, serviceId, onP
 
   const totalPaid = existingPayments.reduce((sum, payment) => sum + payment.amount, 0);
   
-  // Calculate total with tax
+  // Use stored tax values from service instead of calculating automatically
+  const totalCost = service.actual_cost || 0;
   const sparepartsTotal = service.spareparts_total || 0;
   const serviceFee = service.service_fee || 0;
-  const subtotal = sparepartsTotal + serviceFee;
-  const taxAmount = (subtotal * serviceTaxRate) / 100;
-  const totalCost = subtotal + taxAmount;
+  const subtotal = service.base_cost || (sparepartsTotal + serviceFee);
+  const taxAmount = service.tax_amount || 0;
   
   const remainingAmount = totalCost - totalPaid;
   const isFullyPaid = remainingAmount <= 0;
