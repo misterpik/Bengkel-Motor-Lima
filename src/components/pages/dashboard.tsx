@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../../supabase/auth';
+import { useSearchParams } from 'react-router-dom';
 import DashboardUtama from '../workshop/DashboardUtama';
 import ManajemenServis from '../workshop/ManajemenServis';
 import KatalogSparepart from '../workshop/KatalogSparepart';
@@ -7,6 +8,8 @@ import ManajemenPelanggan from '../workshop/ManajemenPelanggan';
 import PanelAdminSuper from '../workshop/PanelAdminSuper';
 import LaporanKeuangan from '../workshop/LaporanKeuangan';
 import PengaturanBengkel from '../workshop/PengaturanBengkel';
+import ProfilPengguna from '../workshop/ProfilPengguna';
+import ManajemenBiaya from '../workshop/ManajemenBiaya';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
@@ -28,17 +31,27 @@ import {
   X,
   User,
   LogOut,
-  TrendingUp
+  TrendingUp,
+  DollarSign
 } from 'lucide-react';
 
 type UserRole = 'bengkel_owner' | 'bengkel_staff' | 'super_admin';
-type ActiveView = 'dashboard' | 'servis' | 'sparepart' | 'pelanggan' | 'laporan' | 'pengaturan' | 'admin_super';
+type ActiveView = 'dashboard' | 'servis' | 'sparepart' | 'pelanggan' | 'laporan' | 'biaya' | 'pengaturan' | 'admin_super' | 'profil';
 
 export default function Dashboard() {
   const { user, signOut } = useAuth();
+  const [searchParams] = useSearchParams();
   const [activeView, setActiveView] = useState<ActiveView>('dashboard');
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [loading, setLoading] = useState(false);
+  
+  // Handle URL parameters for direct navigation
+  useEffect(() => {
+    const viewParam = searchParams.get('view') as ActiveView;
+    if (viewParam && ['dashboard', 'servis', 'sparepart', 'pelanggan', 'laporan', 'biaya', 'pengaturan', 'admin_super', 'profil'].includes(viewParam)) {
+      setActiveView(viewParam);
+    }
+  }, [searchParams]);
   
   // Simulasi role user - dalam implementasi nyata ini akan dari database
   const userRole: UserRole = user?.email?.includes('admin') ? 'super_admin' : 'bengkel_owner';
@@ -73,6 +86,12 @@ export default function Dashboard() {
       id: 'laporan' as ActiveView,
       label: 'Laporan Keuangan',
       icon: TrendingUp,
+      roles: ['bengkel_owner', 'bengkel_staff']
+    },
+    {
+      id: 'biaya' as ActiveView,
+      label: 'Manajemen Biaya',
+      icon: DollarSign,
       roles: ['bengkel_owner', 'bengkel_staff']
     },
     {
@@ -112,10 +131,14 @@ export default function Dashboard() {
         return <KatalogSparepart isLoading={loading} />;
       case 'laporan':
         return <LaporanKeuangan />;
+      case 'biaya':
+        return <ManajemenBiaya />;
       case 'admin_super':
         return <PanelAdminSuper isLoading={loading} />;
       case 'pengaturan':
         return <PengaturanBengkel />;
+      case 'profil':
+        return <ProfilPengguna />;
       default:
         return <DashboardUtama isLoading={loading} />;
     }
@@ -173,11 +196,17 @@ export default function Dashboard() {
                   {user?.email}
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem className="cursor-pointer">
+                <DropdownMenuItem 
+                  className="cursor-pointer"
+                  onSelect={() => setActiveView('profil')}
+                >
                   <User className="mr-2 h-4 w-4" />
                   Profil
                 </DropdownMenuItem>
-                <DropdownMenuItem className="cursor-pointer">
+                <DropdownMenuItem 
+                  className="cursor-pointer"
+                  onSelect={() => setActiveView('pengaturan')}
+                >
                   <Settings className="mr-2 h-4 w-4" />
                   Pengaturan
                 </DropdownMenuItem>

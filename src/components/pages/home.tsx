@@ -71,11 +71,17 @@ export default function LandingPage() {
                       {user.email}
                     </DropdownMenuLabel>
                     <DropdownMenuSeparator />
-                    <DropdownMenuItem className="cursor-pointer">
+                    <DropdownMenuItem 
+                      className="cursor-pointer"
+                      onSelect={() => navigate('/dashboard?view=profil')}
+                    >
                       <User className="mr-2 h-4 w-4" />
                       Profil
                     </DropdownMenuItem>
-                    <DropdownMenuItem className="cursor-pointer">
+                    <DropdownMenuItem 
+                      className="cursor-pointer"
+                      onSelect={() => navigate('/dashboard?view=pengaturan')}
+                    >
                       <Settings className="mr-2 h-4 w-4" />
                       Pengaturan
                     </DropdownMenuItem>

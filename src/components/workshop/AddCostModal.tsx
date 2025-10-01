@@ -27,7 +27,7 @@ const PREDEFINED_COSTS = [
 ];
 
 export default function AddCostModal({ open, onOpenChange, onCostAdded }: AddCostModalProps) {
-  const { tenantId } = useAuth();
+  const { tenantId, user } = useAuth();
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
@@ -37,13 +37,16 @@ export default function AddCostModal({ open, onOpenChange, onCostAdded }: AddCos
     notes: ''
   });
 
+  // Use user.id as fallback if tenantId is not available
+  const effectiveTenantId = tenantId || user?.id;
+
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!tenantId) return;
+    if (!effectiveTenantId) return;
 
     if (!formData.cost_name.trim() || !formData.amount.trim()) {
       toast({
@@ -69,7 +72,7 @@ export default function AddCostModal({ open, onOpenChange, onCostAdded }: AddCos
       const { error } = await supabase
         .from('costs')
         .insert({
-          tenant_id: tenantId,
+          tenant_id: effectiveTenantId,
           cost_name: formData.cost_name.trim(),
           amount: amount,
           cost_date: formData.cost_date,

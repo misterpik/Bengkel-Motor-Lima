@@ -30,14 +30,17 @@ interface Cost {
 }
 
 export default function ManajemenBiaya() {
-  const { tenantId } = useAuth();
+  const { tenantId, user } = useAuth();
   const { toast } = useToast();
   const [costs, setCosts] = useState<Cost[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAddModal, setShowAddModal] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
-  const [filterCostName, setFilterCostName] = useState('');
+  const [filterCostName, setFilterCostName] = useState('all');
   const [selectedMonth, setSelectedMonth] = useState(new Date().toISOString().slice(0, 7));
+
+  // Use user.id as fallback if tenantId is not available
+  const effectiveTenantId = tenantId || user?.id;
 
   const PREDEFINED_COSTS = [
     'Gaji Karyawan',
@@ -50,19 +53,30 @@ export default function ManajemenBiaya() {
   ];
 
   const fetchCosts = async () => {
-    if (!tenantId) return;
+    if (!effectiveTenantId) {
+      console.log('No tenantId available');
+      setLoading(false);
+      return;
+    }
     
     setLoading(true);
     try {
+      console.log('Fetching costs for tenant:', effectiveTenantId);
       const { data, error } = await supabase
         .from('costs')
         .select('*')
-        .eq('tenant_id', tenantId)
+        .eq('tenant_id', effectiveTenantId)
         .order('cost_date', { ascending: false });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Supabase error:', error);
+        throw error;
+      }
+      
+      console.log('Fetched costs:', data);
       setCosts(data || []);
     } catch (error: any) {
+      console.error('Error fetching costs:', error);
       toast({
         title: "Error",
         description: "Gagal memuat data biaya",
@@ -75,12 +89,12 @@ export default function ManajemenBiaya() {
 
   useEffect(() => {
     fetchCosts();
-  }, [tenantId]);
+  }, [effectiveTenantId]);
 
   const filteredCosts = costs.filter(cost => {
     const matchesSearch = cost.cost_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          cost.notes?.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesFilter = filterCostName === '' || cost.cost_name === filterCostName;
+    const matchesFilter = filterCostName === 'all' || cost.cost_name === filterCostName;
     const matchesMonth = cost.cost_date.startsWith(selectedMonth);
     
     return matchesSearch && matchesFilter && matchesMonth;
@@ -202,7 +216,7 @@ export default function ManajemenBiaya() {
                   <SelectValue placeholder="Semua kategori" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Semua kategori</SelectItem>
+                  <SelectItem value="all">Semua kategori</SelectItem>
                   {PREDEFINED_COSTS.map((cost) => (
                     <SelectItem key={cost} value={cost}>
                       {cost}
